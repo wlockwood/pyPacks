@@ -47,7 +47,7 @@ def load_locations(source_file_name):
             # Add to output
             this_row_location = Location(row["ID"], row["Name"], row["Address"], my_dists)
             output_locations.append(this_row_location)
-            print(f"{this_row_location.name} has {len([x for x in my_dists.values() if x >= 0])} valid distance entries")
+            # print(f"{this_row_location.name}, {len([x for x in my_dists.values() if x >= 0])} valid distance entries")
         print(f'Read in {location_reader.line_num} lines from {source_file_name}, '
               f'created {len(output_locations)} package objects.')
         return output_locations

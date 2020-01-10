@@ -1,7 +1,7 @@
 import re
 
 class Location(object):
-    def __init__(self, location_id, name, address, distance_array):
+    def __init__(self, location_id, name, address, distances):
         self.location_id = location_id
         self.name = name
 
@@ -10,10 +10,10 @@ class Location(object):
         self.address = address_parts[0]
         self.zip = address_parts[1]
 
-        self.distance_array = distance_array
+        self.distances = distances
 
     def __repr__(self):
-        return f"Location({self.location_id},{self.address},{self.zip},{self.delivery_deadline},{self.notes})"
+        return f"Location({self.location_id},{self.name},{self.distances})"
 
     def __str__(self):
-        return f"({self.location_id},{self.name},{self.delivery_deadline},{self.notes})"
+        return f"({self.location_id},{self.name},{self.distances})"
