@@ -8,9 +8,8 @@ locations = load_locations("sample_locations.csv")
 
 # Build location+location distance lookup hash table
 routing = model.routing_table.RoutingTable(locations)
-
-print(routing)
-
+routing.lookup(1, 2)
+routing.lookup(1, 3)
 exit(0)
 
 # Associate packages to location objects
@@ -21,4 +20,9 @@ for k, v in (groupby(sortedPacks, keyfunc)):
     print("Location {} has {} packages".format(k, sum(1 for x in v)))
 
 # TODO: Quick stats
+# TODO: Build main time loop
+# TODO: Print snapshots of current package status
+# TODO: Print snapshots of truck location
+
+
 
