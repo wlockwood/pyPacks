@@ -4,7 +4,7 @@ from model.package import Package
 from model.location import Location
 
 
-def load_packages(source_file_name):
+def load_packages(source_file_name: str):
     """Loads packages from the specified CSV file and returns a collection of package instances.
     :param source_file_name: The CSV file to load.
     """
@@ -22,7 +22,7 @@ def load_packages(source_file_name):
         return output_packages
 
 
-def load_locations(source_file_name):
+def load_locations(source_file_name: str):
     """Loads locations from the specified CSV file and returns a collection of location instances.
     :param source_file_name: The CSV file to load.
     """
