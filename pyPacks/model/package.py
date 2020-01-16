@@ -6,15 +6,16 @@ import re
 # TODO: Package.update_state(). Should add log entries.
 
 class Package(object):
-    def __init__(self, package_id: int, dest_address: str, dest_zip: str, notes: str = ""):
+    def __init__(self, package_id: int, dest_address: str, dest_zip: str,
+                 delivery_deadline: int = 0, notes: str = ""):
         self.package_id = package_id
         self.dest_address = dest_address
         self.dest_zip = dest_zip
         self.notes = notes
 
         # Constraints
+        self.delivery_deadline = delivery_deadline  # 0 indicates EOD
         self.delayed_until = 0  # 0 indicates no delay
-        self.delivery_deadline = 0  # 0 indicates EOD
         self.valid_trucks = []  # By default, all trucks are valid
         self.linked_package_ids = []
         self.parse_notes()

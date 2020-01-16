@@ -1,15 +1,15 @@
-from data_loader import load_packages, load_locations
+from data_loader import read_packages, read_locations
 from itertools import groupby
 import model.routing_table
 
 # Initial data load
-packages = load_packages("sample_packages.csv")
-locations = load_locations("sample_locations.csv")
+packages = read_packages("sample_packages.csv")
+locations = read_locations("sample_locations.csv")
 
 # Build location+location distance lookup hash table
 routing = model.routing_table.RoutingTable(locations)
-routing.lookup(1, 2)
-routing.lookup(1, 3)
+
+
 exit(0)
 
 # Associate packages to location objects

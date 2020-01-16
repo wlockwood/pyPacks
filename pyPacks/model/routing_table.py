@@ -25,7 +25,7 @@ class RoutingTable(object):
 
                 if distance > 0:
                     self.set_route_distance(src, dest, distance)
-                    print(f"Added {src}, {dest}, {distance}")
+                    # print(f"Added {src}, {dest}, {distance}") # DEBUG
 
     def set_route_distance(self, id1: int, id2: int, distance) -> None:
         """Add or update the distance between two places."""
