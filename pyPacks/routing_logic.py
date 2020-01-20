@@ -1,5 +1,5 @@
 """ Routing logic
- - Group undelivered packages by location or mandatory groups
+ - Group undelivered packages by location and availability
  - Pick the farthest package from the hub with achievable constraints and the earliest deadline
  - Find nearest neighbor groups until truck is full (nearest-neighbor should use a heap)
  - - Make sure no location is partially loaded on a truck
@@ -28,3 +28,8 @@ Possible Upgrades:
  - Time per location
 
 """
+
+class RouteBuilder(object):
+
+    def __init__(self, locations, packages, trucks):
+        print("Build a good route")

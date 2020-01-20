@@ -1,4 +1,7 @@
 import unittest
+import re
+from typing import List, Dict
+
 
 class RoutingTable(object):
     """
@@ -31,7 +34,7 @@ class RoutingTable(object):
         """Add or update the distance between two places."""
         self.inner_table[self.make_key(id1, id2)] = distance
 
-    def remove_route(self,id1: int, id2: int):
+    def remove_route(self, id1: int, id2: int):
         """Removes a route and its reverse."""
         self.inner_table.pop(self.make_key(id1, id2), None)
         self.inner_table.pop(self.make_key(id2, id1), None)
@@ -39,20 +42,38 @@ class RoutingTable(object):
     def lookup(self, id1: int, id2: int) -> int:
         print(f"Trying to find the distance between {id1} and {id2}...")
         output = self.inner_table.get(self.make_key(id1, id2))
-        if(output == None):
+        if (output == None):
             output = self.inner_table.get(self.make_key(id2, id1))
 
-        if(output == None):
+        if (output == None):
             print("No route found.")
         else:
             print(f"Distance between {id1} and {id2}: {output}")
-
         return output
+
+    def get_all_routes_from_id(self, routes_from_id: int) -> Dict[int, int]:
+        """Returns a dictionary of destinations from this id, with distances as values"""
+        output = {}
+        print(f"Routes from {routes_from_id}:")
+        for k, v in self.inner_table.items():
+            if re.search(rf"(^{routes_from_id}-)", k):  # Search forwards and reverse
+                partial_key = int(re.sub(rf"^{routes_from_id}-", "", k))
+            if re.search(rf"-{routes_from_id}$", k):
+                partial_key = int(re.sub(rf"-{routes_from_id}$", "", k))
+            output[partial_key] = v
+        for k, v in output.items():
+            print(k, " - ", v)
+        return output
+
+    def get_nearest_neighbor(self, id1: int, ignore_node_ids: List[int] = []) -> int:
+        routes = self.get_all_routes_from_id(id1)
+        for ignore_key in ignore_node_ids:
+            del routes[ignore_key]
+        nearest_id = min(routes, key=routes.get)
+        # nearest_id = min([x for x in starting_point_distances if x not in ignore_node_ids])
+        distance = routes[nearest_id]
+        print(f"Nearest neighbor to {id1} is {nearest_id}, {distance} miles away")
 
     @staticmethod
     def make_key(id1, id2):
         return f"{str(id1)}-{str(id2)}"
-
-
-
-

@@ -4,6 +4,7 @@ Trucks should offer a method to calculate miles driven, packages delivered, and 
 
 """
 from enum import Enum, auto
+from model.sim_time import SimTime
 
 
 class Truck(object):
@@ -51,23 +52,27 @@ class TruckLogEntryType(Enum):
 
 class TruckLogEntry(object):
 
+    def __init__(self, time: SimTime):
+        self.time: SimTime = time
+
     @staticmethod
     def new_load_entry(package, time):
-        output = TruckLogEntry()
+        output = TruckLogEntry(time)
         output.entry_type = TruckLogEntryType.LOADED
         output.package = package
+        output
         return output
 
     @staticmethod
     def new_unload_entry(package, time):
-        output = TruckLogEntry()
+        output = TruckLogEntry(time)
         output.entry_type = TruckLogEntryType.UNLOADED
         output.package = package
         return output
 
     @staticmethod
-    def new_drove_entry(start, end, distance):
-        output = TruckLogEntry()
+    def new_drove_entry(start, end, distance, time):
+        output = TruckLogEntry(time)
         output.entry_type = TruckLogEntryType.DROVE
         output.start_location = start
         output.end_location = end

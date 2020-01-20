@@ -1,13 +1,17 @@
 import re
-
-# TODO: Package states: awaiting pickup, on truck, delivered, delayed
-# TODO: Package availability: can be picked up from hub right now?
-# TODO: Package log. Use a logging class?
-# TODO: Package.update_state(). Should add log entries.
+from enum import Enum, auto
+from model.sim_time import SimTime
 
 class Package(object):
-    def __init__(self, package_id: int, dest_address: str, dest_zip: str,
+
+    def __init__(self, package_id: int, sim_time: SimTime, dest_address: str, dest_zip: str,
                  delivery_deadline: int = 0, notes: str = ""):
+
+        self.log = []
+        self.status = 0
+        self.update_state(PackageStatus.READY_FOR_PICKUP, sim_time)
+
+        # Params
         self.package_id = package_id
         self.dest_address = dest_address
         self.dest_zip = dest_zip
@@ -37,8 +41,25 @@ class Package(object):
             lps_string = self.notes[lpn_index:]
             self.linked_package_ids = [int(i) for i in re.split(r'\D+', lps_string)]  # r prefix indicates regex string
 
+    def update_state(self, new_status, sim_time):
+        self.status = new_status
+        self.log.append(PackageLogEntry(new_status, sim_time))
+
     def __repr__(self):
         return f"Package({self.package_id},{self.destination_location},{self.delivery_deadline},{self.notes})"
 
     def __str__(self):
         return f"({self.package_id},{self.destination_location},{self.delivery_deadline},{self.notes})"
+
+
+class PackageStatus(Enum):
+    READY_FOR_PICKUP = "Ready for pickup"
+    UNDELIVERABLE = "Undeliverable, constrained"
+    LOADED_ON_TRUCK = "Loaded on truck"
+    DELIVERED = "Delivered"
+
+
+class PackageLogEntry(object):
+    def __init__(self, status: PackageStatus, sim_time: SimTime):
+        self.status = status
+        self.time = sim_time.get_now()

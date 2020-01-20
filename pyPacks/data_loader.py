@@ -1,12 +1,14 @@
 import csv
 import re
-from model.package import Package
+from model.package import Package,PackageStatus,PackageLogEntry
 from model.location import Location
+from model.sim_time import SimTime
 
 
-def read_packages(source_file_name: str):
+def read_packages(source_file_name: str, sim_time: SimTime):
     """Loads packages from the specified CSV file and returns a collection of package instances.
     :param source_file_name: The CSV file to load.
+    :param sim_time: Reference to the global simulation time object.
     """
     with open(source_file_name) as packages_file:
         packages_reader = csv.DictReader(packages_file)
@@ -14,7 +16,7 @@ def read_packages(source_file_name: str):
         output_packages = []
 
         for row in packages_reader:
-            this_row_package = Package(row["Package ID"], row["Address"], row["Zip"],
+            this_row_package = Package(row["Package ID"], sim_time, row["Address"], row["Zip"],
                                        row["Delivery Deadline"], row["Notes"])
             output_packages.append(this_row_package)
         print(f'Read in {packages_reader.line_num} lines from {source_file_name}, '
