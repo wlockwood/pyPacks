@@ -11,10 +11,7 @@ class RoutingTable(object):
     """
 
     # Looking back, this really should have been a two-dimensional array.
-    # TODO: Unit tests! How to make them run?
     # TODO: Display routing table, attempt two.
-    # TODO: get_nearest_neighbor(). Takes in a location id, returns the nearest location id.
-    # TODO: Maybe route calculation should be in this class?
 
     def __init__(self, location_list):
         self.inner_table = dict()  # Empty dictionary

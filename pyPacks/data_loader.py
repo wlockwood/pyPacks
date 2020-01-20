@@ -40,6 +40,7 @@ def read_locations(source_file_name: str):
 def read_packages(source_file_name: str, locations: List[Location], sim_time: SimTime):
     """Loads packages from the specified CSV file and returns a collection of package instances.
     :param source_file_name: The CSV file to load.
+    :param locations: List of Location objects, probably from read_locations()
     :param sim_time: Reference to the global simulation time object.
     """
     with open(source_file_name) as packages_file:
