@@ -1,4 +1,4 @@
-from itertools import groupby
+
 from data_loader import read_packages, read_locations
 from model.routing_table import RoutingTable
 from model.truck import Truck
@@ -7,22 +7,13 @@ from model.sim_time import SimTime
 sim_time = SimTime(800)  # Global time tracker
 
 # Initial data load
-packages = read_packages("sample_packages.csv", sim_time)
 locations = read_locations("sample_locations.csv")
+packages = read_packages("sample_packages.csv", locations, sim_time)
 routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
 
-# Associate packages to location objects
-keyfunc = lambda x: x.dest_address
-sortedPacks = sorted(packages, key=keyfunc)
-for k, v in (groupby(sortedPacks, keyfunc)):
-    print("Location {} has {} packages".format(k, sum(1 for x in v)))  # The other modern string format, for practice
+
 
 trucks = [Truck(1), Truck(2)]  # Build trucks. There's a third truck, but I think it's an error in the instructions.
-
-routing_table.get_nearest_neighbor(1)
-routing_table.get_nearest_neighbor(1, [16])
-routing_table.get_nearest_neighbor(2)
-routing_table.get_nearest_neighbor(2, [20,17])
 
 
 """

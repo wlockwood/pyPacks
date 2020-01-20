@@ -28,18 +28,25 @@ Possible Upgrades:
  - Time per location
 
 """
+from itertools import groupby
 
 
 class RouteBuilder(object):
 
-    def __init__(self, locations, packages, trucks):
+    def __init__(self, locations, packages, trucks, routing_table):
         self.locations = locations
         self.packages = packages
         self.trucks = trucks
+        self.table = routing_table
 
     def group_packages(self):
         """Group undelivered packages by location and availability."""
-        raise NotImplementedError("group_packages")
+        # Associate packages to location objects
+        keyfunc = lambda x: x.dest_address
+        sortedPacks = sorted(self.packages, key=keyfunc)
+        for k, v in (groupby(sortedPacks, keyfunc)):
+            print("Location {} has {} packages".format(k, sum(
+                1 for x in v)))  # The other modern string format, for practice
 
     def choose_starting_group(self):
         """Pick the farthest unconstrained package from the hub, prioritizing earlier deadlines."""

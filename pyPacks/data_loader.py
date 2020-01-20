@@ -1,27 +1,9 @@
 import csv
 import re
-from model.package import Package,PackageStatus,PackageLogEntry
+from typing import List
+from model.package import Package, PackageStatus, PackageLogEntry
 from model.location import Location
 from model.sim_time import SimTime
-
-
-def read_packages(source_file_name: str, sim_time: SimTime):
-    """Loads packages from the specified CSV file and returns a collection of package instances.
-    :param source_file_name: The CSV file to load.
-    :param sim_time: Reference to the global simulation time object.
-    """
-    with open(source_file_name) as packages_file:
-        packages_reader = csv.DictReader(packages_file)
-        next(packages_reader)  # Skips the header row
-        output_packages = []
-
-        for row in packages_reader:
-            this_row_package = Package(row["Package ID"], sim_time, row["Address"], row["Zip"],
-                                       row["Delivery Deadline"], row["Notes"])
-            output_packages.append(this_row_package)
-        print(f'Read in {packages_reader.line_num} lines from {source_file_name}, '
-              f'created {len(output_packages)} package objects.')
-        return output_packages
 
 
 def read_locations(source_file_name: str):
@@ -35,7 +17,7 @@ def read_locations(source_file_name: str):
 
         int_fieldnames = [i for i in location_reader.fieldnames if re.match('\d+', i)]
 
-        distance_array_fields = list(map(lambda x: int(x), int_fieldnames)) # Not sure this is necessary?
+        distance_array_fields = list(map(lambda x: int(x), int_fieldnames))  # Not sure this is necessary?
 
         for row in location_reader:
             # Build distance array
@@ -53,3 +35,44 @@ def read_locations(source_file_name: str):
         print(f'Read in {location_reader.line_num} lines from {source_file_name}, '
               f'created {len(output_locations)} package objects.')
         return output_locations
+
+
+def read_packages(source_file_name: str, locations: List[Location], sim_time: SimTime):
+    """Loads packages from the specified CSV file and returns a collection of package instances.
+    :param source_file_name: The CSV file to load.
+    :param sim_time: Reference to the global simulation time object.
+    """
+    with open(source_file_name) as packages_file:
+        packages_reader = csv.DictReader(packages_file)
+        next(packages_reader)  # Skips the header row
+
+        # Build location dictionary
+        loc_dict = {}
+        for loc in locations:
+            loc_dict[loc.address + "-" + loc.zip] = loc
+
+        output_packages = []
+        fail_count = 0
+
+        for row in packages_reader:
+            # Identify the location this package should end up at
+            location_hash = row["Address"] + "-" + row["Zip"]
+
+            try:
+                my_location = loc_dict[location_hash]
+            except KeyError:
+                print(f"Couldn't match '{location_hash}' in location dictionary.")
+                fail_count += 1
+            this_row_package = Package(row["Package ID"], sim_time, my_location,
+                                       row["Delivery Deadline"], row["Notes"])
+
+            output_packages.append(this_row_package)
+
+        print(f'Read in {packages_reader.line_num} lines from {source_file_name}, '
+              f'created {len(output_packages)} package objects.')
+        if fail_count > 0:
+            print("Location keys:")
+            for k in loc_dict.keys():
+                print(k)
+            print(f"Failed to identify the correct address for {fail_count} packages.")
+        return output_packages

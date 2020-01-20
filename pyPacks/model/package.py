@@ -1,10 +1,11 @@
 import re
 from enum import Enum, auto
 from model.sim_time import SimTime
+from model.location import Location
 
 class Package(object):
 
-    def __init__(self, package_id: int, sim_time: SimTime, dest_address: str, dest_zip: str,
+    def __init__(self, package_id: int, sim_time: SimTime, dest_location: Location,
                  delivery_deadline: int = 0, notes: str = ""):
 
         self.log = []
@@ -13,8 +14,7 @@ class Package(object):
 
         # Params
         self.package_id = package_id
-        self.dest_address = dest_address
-        self.dest_zip = dest_zip
+        self.dest_location = dest_location
         self.notes = notes
 
         # Constraints
