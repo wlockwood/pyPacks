@@ -21,6 +21,8 @@ trucks = [Truck(1), Truck(2)]  # Build trucks. There's a third truck, but I thin
 
 routing_table.get_nearest_neighbor(1)
 routing_table.get_nearest_neighbor(1, [16])
+routing_table.get_nearest_neighbor(2)
+routing_table.get_nearest_neighbor(2, [20,17])
 
 
 """

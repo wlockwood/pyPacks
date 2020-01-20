@@ -54,15 +54,12 @@ class RoutingTable(object):
     def get_all_routes_from_id(self, routes_from_id: int) -> Dict[int, int]:
         """Returns a dictionary of destinations from this id, with distances as values"""
         output = {}
-        print(f"Routes from {routes_from_id}:")
         for k, v in self.inner_table.items():
             if re.search(rf"(^{routes_from_id}-)", k):  # Search forwards and reverse
                 partial_key = int(re.sub(rf"^{routes_from_id}-", "", k))
             if re.search(rf"-{routes_from_id}$", k):
                 partial_key = int(re.sub(rf"-{routes_from_id}$", "", k))
             output[partial_key] = v
-        for k, v in output.items():
-            print(k, " - ", v)
         return output
 
     def get_nearest_neighbor(self, id1: int, ignore_node_ids: List[int] = []) -> int:
@@ -72,7 +69,11 @@ class RoutingTable(object):
         nearest_id = min(routes, key=routes.get)
         # nearest_id = min([x for x in starting_point_distances if x not in ignore_node_ids])
         distance = routes[nearest_id]
-        print(f"Nearest neighbor to {id1} is {nearest_id}, {distance} miles away")
+        if len(ignore_node_ids) > 0:
+            print(f"Nearest neighbor to {id1} is {nearest_id}, {distance} miles away, ignoring {ignore_node_ids}")
+        else:
+            print(f"Nearest neighbor to {id1} is {nearest_id}, {distance} miles away")
+        return nearest_id
 
     @staticmethod
     def make_key(id1, id2):

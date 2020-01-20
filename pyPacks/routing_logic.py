@@ -29,7 +29,25 @@ Possible Upgrades:
 
 """
 
+
 class RouteBuilder(object):
 
     def __init__(self, locations, packages, trucks):
-        print("Build a good route")
+        self.locations = locations
+        self.packages = packages
+        self.trucks = trucks
+
+    def group_packages(self):
+        """Group undelivered packages by location and availability."""
+        raise NotImplementedError("group_packages")
+
+    def choose_starting_group(self):
+        """Pick the farthest unconstrained package from the hub, prioritizing earlier deadlines."""
+        raise NotImplementedError("choose_starting_group")
+
+    def recalculate_route(self):
+        print("This should recalculate the route. Not yet implemented.")
+        raise NotImplementedError("Recalculate route")
+
+    def build_route(self):
+        raise NotImplementedError("build_route")

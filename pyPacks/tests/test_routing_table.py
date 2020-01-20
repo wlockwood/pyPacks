@@ -1,6 +1,7 @@
 from unittest import TestCase
 from model.routing_table import RoutingTable
 
+
 class TestRoutingTable(TestCase):
     def setUp(self):
         self.test_table = RoutingTable([])
@@ -31,7 +32,16 @@ class TestRoutingTable(TestCase):
         self.assertEqual(reverse, 45.2)
 
     def test_make_key(self):
-        gen_key = self.test_table.make_key(1,2)
+        gen_key = self.test_table.make_key(1, 2)
         self.assertEqual(gen_key, "1-2")
-        gen_key = self.test_table.make_key(15,33)
+        gen_key = self.test_table.make_key(15, 33)
         self.assertEqual(gen_key, "15-33")
+
+    def test_get_nearest_neighbor(self):
+        self.test_table.set_route_distance(1, 2, 10)
+        self.test_table.set_route_distance(1, 3, 15)
+        found_neighbor = self.test_table.get_nearest_neighbor(1)
+        self.assertEqual(2, found_neighbor)
+        self.test_table.set_route_distance(1, 4, 20)
+        found_neighbor = self.test_table.get_nearest_neighbor(1,[2])
+        self.assertEqual(3, found_neighbor)
