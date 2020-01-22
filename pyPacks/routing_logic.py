@@ -36,6 +36,7 @@ from model.routing_table import RoutingTable
 from model.truck import Truck
 from model.location import Location
 
+
 class RouteBuilder(object):
 
     def __init__(self, locations, packages, trucks, routing_table: RoutingTable):
@@ -70,8 +71,9 @@ class RouteBuilder(object):
 
     def determine_truckload(self, truck: Truck) -> List[PackageGroup]:
         # TODO: Seriously, prioritize package groups with deadlines
-        available_pgroups: List[PackageGroup] = [x for x in self.package_groups if x.get_status() == PackageStatus.READY_FOR_PICKUP]
-
+        available_pgroups: List[PackageGroup] = [x for x in self.package_groups if
+                                                 x.get_status() == PackageStatus.READY_FOR_PICKUP]
+        location_skip_list: List[Location] = []  # Locations that need too many packages delivered to fit in what's left
         last = self.choose_starting_group()
         truck.load_package_group(last)
 
@@ -79,10 +81,32 @@ class RouteBuilder(object):
             # Find the next nearest place that needs a delivery
             # valid_locations is available_pgroups less already loaded locations
             valid_locations = \
-                [pg.destination for pg in available_pgroups if pg.destination not in truck.get_locations_on_route()]
-            nn_loc: Location = self.routing_table.get_nearest_neighbor_of_set(last.destination, valid_locations)
+                [pg.destination for pg in available_pgroups if pg.destination not in truck.get_locations_on_route()
+                 and pg.destination not in location_skip_list]
+            try:
+                nn_loc: Location = self.routing_table.get_nearest_neighbor_of_set(last.destination, valid_locations)
+            except ValueError:
+                print("No more packages available for this truck at this time.")
+                break
             nn_pg: PackageGroup = [x for x in available_pgroups if x.destination == nn_loc][0]
-            truck.load_package_group(nn_pg)
+
+            # Check to see if this PackageGroup will fit
+            can_fit = truck.get_package_count() + nn_pg.get_count() <= truck.package_capacity
+            allowed_on_truck = len(nn_pg.packages[0].valid_truck_ids) == 0 or \
+                               truck.truck_num in nn_pg.packages[0].valid_truck_ids
+            if can_fit and allowed_on_truck:  # Allowed to be on this truck
+                truck.load_package_group(nn_pg)
+            else:
+                location_skip_list.append(nn_loc)  # Bypass this location next time
+
+        locations = [x.destination for x in truck.package_groups]
+        i = 0
+        distances: List[float] = []
+        while i < (len(locations) - 1):
+            distances.append(self.routing_table.lookup(locations[i].id, locations[i + 1].id))
+            i += 1
+        total = sum(distances)
+        print("Distances:", distances)
+        print(f"Total: {total:.1f}")
+        print(f"Time to drive: {(total / 18):.1f}h")
         return
-
-

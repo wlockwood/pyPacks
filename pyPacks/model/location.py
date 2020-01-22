@@ -13,7 +13,7 @@ class Location(object):
         self.distances = distances
 
     def __repr__(self):
-        return f"Location({self.id},{self.name},{self.distances})"
+        return f"Location({self.id},{self.name})"
 
     def __str__(self):
-        return f"({self.id},{self.name},{self.distances})"
+        return f"({self.id},{self.name})"

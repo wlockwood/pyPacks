@@ -13,11 +13,15 @@ packages = read_packages("sample_packages.csv", locations, sim_time)
 routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
 
 # Build trucks. There's a third truck, but I think it's an error in the instructions.
-trucks = [Truck(1, sim_time), Truck(2, sim_time)]
+trucks = [Truck(1, sim_time), Truck(2, sim_time), Truck(3, sim_time)]
 
 route_builder = RouteBuilder(locations, packages, trucks, routing_table)
+print("Truck 1")
 route_builder.determine_truckload(trucks[0])
-
+print("Truck 2")
+route_builder.determine_truckload(trucks[1])
+print("Truck 3")
+route_builder.determine_truckload(trucks[2])
 
 
 
