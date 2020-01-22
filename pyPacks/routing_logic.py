@@ -81,9 +81,8 @@ class RouteBuilder(object):
             valid_locations = \
                 [pg.destination for pg in available_pgroups if pg.destination not in truck.get_locations_on_route()]
             nn_loc: Location = self.routing_table.get_nearest_neighbor_of_set(last.destination, valid_locations)
-            nn_pg: PackageGroup = next([x for x in available_pgroups if x.destination == nn_loc])
-            print("Next nearest location is ", nn_loc.name)
+            nn_pg: PackageGroup = [x for x in available_pgroups if x.destination == nn_loc][0]
             truck.load_package_group(nn_pg)
-        # Rebuilding route without regrouping packages will end poorly.
-        raise NotImplementedError("build_route")
+        return
+
 

@@ -3,6 +3,7 @@ import re
 from typing import List, Dict
 from model.location import Location
 
+
 class RoutingTable(object):
     """
     Routing table will allow a quick distance lookup between two locations.
@@ -25,6 +26,7 @@ class RoutingTable(object):
 
                 if distance > 0:
                     self.set_route_distance(src, dest, distance)
+
     def set_route_distance(self, id1: int, id2: int, distance) -> None:
         """Add or update the distance between two places."""
         self.inner_table[self.make_key(id1, id2)] = distance
@@ -35,11 +37,10 @@ class RoutingTable(object):
         self.inner_table.pop(self.make_key(id2, id1), None)
 
     def lookup(self, id1: int, id2: int) -> int:
-        output = self.inner_table.get(self.make_key(id1, id2))
-        if (output == None):
-            output = self.inner_table.get(self.make_key(id2, id1))
-
-        if (output == None):
+        output = self.inner_table.get(self.make_key(id1, id2), None)
+        if output is None:
+            output = self.inner_table.get(self.make_key(id2, id1), None)
+        if output is None:
             print(f"No route found between {id1} and {id2}!")
         return output
 
@@ -75,7 +76,7 @@ class RoutingTable(object):
     def get_nearest_neighbor_of_set(self, start: Location, other_locs: List[Location]) -> Location:
         distances = {}
         for i in other_locs:
-            distances[i](self.lookup(start.id, i.id))
+            distances[i] = self.lookup(start.id, i.id)
         return min(distances, key=distances.get)
 
     @staticmethod
