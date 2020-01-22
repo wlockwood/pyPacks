@@ -40,8 +40,8 @@ class TestRoutingTable(TestCase):
     def test_get_nearest_neighbor(self):
         self.test_table.set_route_distance(1, 2, 10)
         self.test_table.set_route_distance(1, 3, 15)
-        found_neighbor = self.test_table.get_nearest_neighbor(1)
+        found_neighbor = self.test_table.get_nearest_neighbor_by_id(1)
         self.assertEqual(2, found_neighbor)
         self.test_table.set_route_distance(1, 4, 20)
-        found_neighbor = self.test_table.get_nearest_neighbor(1,[2])
+        found_neighbor = self.test_table.get_nearest_neighbor_by_id(1, [2])
         self.assertEqual(3, found_neighbor)

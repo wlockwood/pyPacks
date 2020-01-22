@@ -29,32 +29,61 @@ Possible Upgrades:
 
 """
 from itertools import groupby
-
+from typing import List
+from model.package_group import PackageGroup
+from model.package import Package, PackageStatus
+from model.routing_table import RoutingTable
+from model.truck import Truck
+from model.location import Location
 
 class RouteBuilder(object):
 
-    def __init__(self, locations, packages, trucks, routing_table):
+    def __init__(self, locations, packages, trucks, routing_table: RoutingTable):
         self.locations = locations
         self.packages = packages
+        self.package_groups = self.group_packages()
         self.trucks = trucks
-        self.table = routing_table
+        self.routing_table = routing_table
 
     def group_packages(self):
         """Group undelivered packages by location and availability."""
-        # Associate packages to location objects
-        keyfunc = lambda x: x.dest_address
-        sortedPacks = sorted(self.packages, key=keyfunc)
-        for k, v in (groupby(sortedPacks, keyfunc)):
-            print("Location {} has {} packages".format(k, sum(
-                1 for x in v)))  # The other modern string format, for practice
+        # Group package by location and status
+        keyfunc = lambda x: x.dest_location.id + "-" + x.status.value
+        sorted_packs = sorted(self.packages, key=keyfunc)
+        grouped_packs = groupby(sorted_packs, keyfunc)
 
-    def choose_starting_group(self):
+        # Turn Grouper objects into PackageGroups
+        package_groups = []
+        for k, v in grouped_packs:
+            this_pg = PackageGroup(list(v))
+            package_groups.append(this_pg)
+            # print(f"Location {k} has {sum(1 for x in this_pg.packages)} packages")
+        return package_groups
+
+    def choose_starting_group(self) -> PackageGroup:
         """Pick the farthest unconstrained package from the hub, prioritizing earlier deadlines."""
-        raise NotImplementedError("choose_starting_group")
+        # TODO: Add priority for packages with early deliver deadlines
+        available_packages = [x for x in self.package_groups if x.get_status() == PackageStatus.READY_FOR_PICKUP]
+        farthest_package_group = max(available_packages, key=lambda x: self.routing_table.lookup(1, x.destination.id))
+        print(farthest_package_group)
+        return farthest_package_group
 
-    def recalculate_route(self):
-        print("This should recalculate the route. Not yet implemented.")
-        raise NotImplementedError("Recalculate route")
+    def determine_truckload(self, truck: Truck) -> List[PackageGroup]:
+        # TODO: Seriously, prioritize package groups with deadlines
+        available_pgroups: List[PackageGroup] = [x for x in self.package_groups if x.get_status() == PackageStatus.READY_FOR_PICKUP]
 
-    def build_route(self):
+        last = self.choose_starting_group()
+        truck.load_package_group(last)
+
+        while truck.get_package_count() < truck.package_capacity:
+            # Find the next nearest place that needs a delivery
+            # valid_locations is available_pgroups less already loaded locations
+            valid_locations = \
+                [pg.destination for pg in available_pgroups if pg.destination not in truck.get_locations_on_route()]
+            nn_loc: Location = self.routing_table.get_nearest_neighbor_of_set(last.destination, valid_locations)
+            nn_pg: PackageGroup = next([x for x in available_pgroups if x.destination == nn_loc])
+            print("Next nearest location is ", nn_loc.name)
+            truck.load_package_group(nn_pg)
+        # Rebuilding route without regrouping packages will end poorly.
         raise NotImplementedError("build_route")
+

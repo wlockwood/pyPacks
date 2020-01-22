@@ -4,37 +4,43 @@ Trucks should offer a method to calculate miles driven, packages delivered, and 
 
 """
 from enum import Enum, auto
+from typing import List
+
+from model.location import Location
 from model.sim_time import SimTime
+from model.package import Package,PackageStatus
+from model.package_group import PackageGroup
 
 
 class Truck(object):
-    def __init__(self, truck_num):
+    def __init__(self, truck_num, sim_time: SimTime):
         self.package_capacity = 16  # Defined in spec
         self.speed_mph = 18  # Defined in spec
-        self.packages = []  # Packages currently on truck
+        self.package_groups: List[PackageGroup] = []  # Packages currently on truck
         self.log = []  # Events involving this truck
         self.truck_num = truck_num
         self.current_location = 0  # All trucks start at hub / WGU
+        self.sim_time = sim_time
 
-    def load_package(self, package):
-        self.packages += package
-        self.log.append(TruckLogEntry.new_load_entry(package))
-        print(f"Loaded package {package.package_id} onto truck {self.truck_num}. "
-              f"Now at {len(self.packages)} on truck")
+    def load_package_group(self, package_group: PackageGroup):
+        self.package_groups.append(package_group)
+        self.log.append(TruckLogEntry.new_load_entry(package_group, self.sim_time))
+        package_group.update_status(PackageStatus.LOADED_ON_TRUCK)
+        print(f"Loaded {package_group.get_count()} packages onto truck {self.truck_num}. "
+              f"Now at {self.get_package_count()} on truck")
 
-    def load_packages(self, packages):
-        for package in packages:
-            self.load_package(package)
+    def unload_package_group(self, package_group: PackageGroup):
+        self.package_groups.remove(package_group)
+        self.log.append(TruckLogEntry.new_unload_entry(package_group, self.sim_time))
+        package_group.update_status(PackageStatus.DELIVERED)
+        print(f"Unloaded {package_group.get_count()} packages from truck {self.truck_num}. "
+              f"Now at {self.get_package_count()} on truck.")
 
-    def unload_package(self, package):
-        self.packages.remove(package)
-        self.log.append(TruckLogEntry.new_unload_entry(package))
-        print(f"Unloaded package {package.package_id} from truck {self.truck_num}. "
-              f"Now at {len(self.packages)} on truck.")
+    def get_package_count(self):
+        return sum(pg.get_count() for pg in self.package_groups)
 
-    def unload_packages(self, packages):
-        for package in packages:
-            self.unload_package(package)
+    def get_locations_on_route(self) -> List[Location]:
+        return [pg.destination for pg in self.package_groups]
 
     def drive_to(self, destination_location_id):
         print("Do things to make truck go places.")
@@ -60,7 +66,6 @@ class TruckLogEntry(object):
         output = TruckLogEntry(time)
         output.entry_type = TruckLogEntryType.LOADED
         output.package = package
-        output
         return output
 
     @staticmethod

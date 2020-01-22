@@ -1,7 +1,7 @@
 import unittest
 import re
 from typing import List, Dict
-
+from model.location import Location
 
 class RoutingTable(object):
     """
@@ -19,14 +19,12 @@ class RoutingTable(object):
 
         for source_loc in self.locations:
             for dest_loc in source_loc.distances:
-                src = source_loc.location_id
+                src = source_loc.id
                 dest = int(dest_loc)
                 distance = source_loc.distances[dest_loc]
 
                 if distance > 0:
                     self.set_route_distance(src, dest, distance)
-                    # print(f"Added {src}, {dest}, {distance}") # DEBUG
-
     def set_route_distance(self, id1: int, id2: int, distance) -> None:
         """Add or update the distance between two places."""
         self.inner_table[self.make_key(id1, id2)] = distance
@@ -37,15 +35,12 @@ class RoutingTable(object):
         self.inner_table.pop(self.make_key(id2, id1), None)
 
     def lookup(self, id1: int, id2: int) -> int:
-        print(f"Trying to find the distance between {id1} and {id2}...")
         output = self.inner_table.get(self.make_key(id1, id2))
         if (output == None):
             output = self.inner_table.get(self.make_key(id2, id1))
 
         if (output == None):
-            print("No route found.")
-        else:
-            print(f"Distance between {id1} and {id2}: {output}")
+            print(f"No route found between {id1} and {id2}!")
         return output
 
     def get_all_routes_from_id(self, routes_from_id: int) -> Dict[int, int]:
@@ -59,7 +54,7 @@ class RoutingTable(object):
             output[partial_key] = v
         return output
 
-    def get_nearest_neighbor(self, id1: int, ignore_node_ids: List[int] = []) -> int:
+    def get_nearest_neighbor_by_id(self, id1: int, ignore_node_ids: List[int] = []) -> int:
         routes = self.get_all_routes_from_id(id1)
         for ignore_key in ignore_node_ids:
             del routes[ignore_key]
@@ -71,6 +66,17 @@ class RoutingTable(object):
         else:
             print(f"Nearest neighbor to {id1} is {nearest_id}, {distance} miles away")
         return nearest_id
+
+    def get_nearest_neighbor(self, start: Location, ignore_locations: List[Location] = []) -> Location:
+        """Wrapper for get_nearest_neighbor_by_id that handles remapping the object."""
+        nearest_id = self.get_nearest_neighbor_by_id(Location.id, [x.id for x in ignore_locations])
+        return next(x for x in self.locations if x.id == start.id)
+
+    def get_nearest_neighbor_of_set(self, start: Location, other_locs: List[Location]) -> Location:
+        distances = {}
+        for i in other_locs:
+            distances[i](self.lookup(start.id, i.id))
+        return min(distances, key=distances.get)
 
     @staticmethod
     def make_key(id1, id2):

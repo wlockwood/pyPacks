@@ -1,8 +1,8 @@
 import re
 
 class Location(object):
-    def __init__(self, location_id, name, address, distances):
-        self.location_id = location_id
+    def __init__(self, id, name, address, distances):
+        self.id = id
         self.name = name
 
         # Parse address into street and zip
@@ -13,7 +13,7 @@ class Location(object):
         self.distances = distances
 
     def __repr__(self):
-        return f"Location({self.location_id},{self.name},{self.distances})"
+        return f"Location({self.id},{self.name},{self.distances})"
 
     def __str__(self):
-        return f"({self.location_id},{self.name},{self.distances})"
+        return f"({self.id},{self.name},{self.distances})"

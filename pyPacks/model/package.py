@@ -1,8 +1,10 @@
 import re
 from enum import Enum, auto
+from typing import List
 from model.sim_time import SimTime
 from model.location import Location
 
+# TODO: Add in "priority" concept for packages with delivery deadlines.
 class Package(object):
 
     def __init__(self, package_id: int, sim_time: SimTime, dest_location: Location,
@@ -10,17 +12,18 @@ class Package(object):
 
         self.log = []
         self.status = 0
-        self.update_state(PackageStatus.READY_FOR_PICKUP, sim_time)
+        self.my_sim_time_tracker = sim_time
+        self.update_status(PackageStatus.READY_FOR_PICKUP)
 
         # Params
-        self.package_id = package_id
-        self.dest_location = dest_location
-        self.notes = notes
+        self.package_id: int = package_id
+        self.dest_location: Location = dest_location
+        self.notes: str = notes
 
         # Constraints
-        self.delivery_deadline = delivery_deadline  # 0 indicates EOD
-        self.delayed_until = 0  # 0 indicates no delay
-        self.valid_trucks = []  # By default, all trucks are valid
+        self.delivery_deadline: float = delivery_deadline  # 0 indicates EOD
+        self.delayed_until: float = 0  # 0 indicates no delay
+        self.valid_truck_ids: List[int] = []  # By default, all trucks are valid
         self.linked_package_ids = []
         self.parse_notes()
 
@@ -30,7 +33,7 @@ class Package(object):
         if truck_note in self.notes:
             truck_num_index = self.notes.find(truck_note) + len(truck_note) + 1
             truck_num = self.notes[truck_num_index:truck_num_index + 1]
-            valid_trucks = truck_num
+            valid_trucks = [truck_num]  # Only supports one truck
             print(f"Note: Package {self.package_id} can only go on truck {truck_num}")
 
         # Linked package notes parsing will fail if it's not the last note
@@ -41,15 +44,17 @@ class Package(object):
             lps_string = self.notes[lpn_index:]
             self.linked_package_ids = [int(i) for i in re.split(r'\D+', lps_string)]  # r prefix indicates regex string
 
-    def update_state(self, new_status, sim_time):
+        # TODO: Add "delayed until" logic
+
+    def update_status(self, new_status):
         self.status = new_status
-        self.log.append(PackageLogEntry(new_status, sim_time))
+        self.log.append(PackageLogEntry(new_status, self.my_sim_time_tracker))
 
     def __repr__(self):
-        return f"Package({self.package_id},{self.destination_location},{self.delivery_deadline},{self.notes})"
+        return f"Package({self.package_id},{self.dest_location.name},{self.delivery_deadline},{self.notes})"
 
     def __str__(self):
-        return f"({self.package_id},{self.destination_location},{self.delivery_deadline},{self.notes})"
+        return f"({self.package_id},{self.dest_location.name},{self.delivery_deadline},{self.notes})"
 
 
 class PackageStatus(Enum):
