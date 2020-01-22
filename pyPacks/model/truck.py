@@ -26,7 +26,8 @@ class Truck(object):
         self.package_groups.append(package_group)
         self.log.append(TruckLogEntry.new_load_entry(package_group, self.sim_time))
         package_group.update_status(PackageStatus.LOADED_ON_TRUCK)
-        print(f"Loaded {package_group.get_count()} packages onto truck {self.truck_num}. "
+        print(f"Loaded {package_group.get_count()} packages bound for '{package_group.destination.name}'"
+              f" onto truck {self.truck_num}. "
               f"Now at {self.get_package_count()} on truck")
 
     def unload_package_group(self, package_group: PackageGroup):
@@ -34,7 +35,7 @@ class Truck(object):
         self.log.append(TruckLogEntry.new_unload_entry(package_group, self.sim_time))
         package_group.update_status(PackageStatus.DELIVERED)
         print(f"Unloaded {package_group.get_count()} packages from truck {self.truck_num}. "
-              f"Now at {self.get_package_count()} on truck.")
+              f"Now at {self.get_package_count()} package(s) on truck.")
 
     def get_package_count(self):
         return sum(pg.get_count() for pg in self.package_groups)
