@@ -8,7 +8,7 @@ from model.location import Location
 class Package(object):
 
     def __init__(self, package_id: int, sim_time: SimTime, dest_location: Location,
-                 delivery_deadline: int = 0, notes: str = ""):
+                 delivery_deadline: int = 0, mass_kg: float = 0, notes: str = ""):
 
         self.log = []
         self.status = 0
@@ -19,6 +19,7 @@ class Package(object):
         self.package_id: int = int(package_id)
         self.dest_location: Location = dest_location
         self.notes: str = notes
+        self.mass_kg = mass_kg
 
         # Constraints
         self.delivery_deadline: float = delivery_deadline  # 0 indicates EOD
