@@ -16,7 +16,7 @@ class Package(object):
         self.update_status(PackageStatus.READY_FOR_PICKUP)
 
         # Params
-        self.package_id: int = package_id
+        self.package_id: int = int(package_id)
         self.dest_location: Location = dest_location
         self.notes: str = notes
 
@@ -43,6 +43,7 @@ class Package(object):
             lpn_index = self.notes.find(lpn) + len(lpn) + 1  # Starting point for any linked package notes
             lps_string = self.notes[lpn_index:]
             self.linked_package_ids = [int(i) for i in re.split(r'\D+', lps_string)]  # r prefix indicates regex string
+            print(f"Note: Package {self.package_id} must be delivered with {self.linked_package_ids}")
 
         # TODO: Add "delayed until" logic
 
@@ -62,6 +63,7 @@ class PackageStatus(Enum):
     UNDELIVERABLE = "Undeliverable, constrained"
     LOADED_ON_TRUCK = "Loaded on truck"
     DELIVERED = "Delivered"
+    RETURN_TO_HUB = "Must return to hub"
 
 
 class PackageLogEntry(object):

@@ -29,7 +29,7 @@ Possible Upgrades:
 
 """
 from itertools import groupby
-from typing import List
+from typing import List, Set
 from model.package_group import PackageGroup
 from model.package import Package, PackageStatus
 from model.routing_table import RoutingTable
@@ -90,12 +90,28 @@ class RouteBuilder(object):
                 break
             nn_pg: PackageGroup = [x for x in available_pgroups if x.destination == nn_loc][0]
 
+            # Check for linked packages/groups
+            nn_pg_ids = [p.package_id for p in nn_pg.packages]
+            if '15' in nn_pg_ids:
+                print("PAUSE!")
+            linked_pgs = [x for x in available_pgroups if
+                          x.is_linked_to_ids(nn_pg_ids)]
+            # If there are linked packages, see if any of *those* packages have links
+            for a_linked_pg in linked_pgs:
+                print(a_linked_pg)
+
+            linked_count = sum([x.get_count() for x in linked_pgs])
+            if linked_count:
+                print(f"Attempting to load {linked_count} linked packages: {linked_pgs}")
+
             # Check to see if this PackageGroup will fit
-            can_fit = truck.get_package_count() + nn_pg.get_count() <= truck.package_capacity
+            can_fit = truck.get_package_count() + nn_pg.get_count() + linked_count <= truck.package_capacity
             allowed_on_truck = len(nn_pg.packages[0].valid_truck_ids) == 0 or \
                                truck.truck_num in nn_pg.packages[0].valid_truck_ids
             if can_fit and allowed_on_truck:  # Allowed to be on this truck
                 truck.load_package_group(nn_pg)
+                for pg in linked_pgs:
+                    truck.load_package_group(pg)
             else:
                 location_skip_list.append(nn_loc)  # Bypass this location next time
 

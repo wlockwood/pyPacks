@@ -18,6 +18,21 @@ class PackageGroup(object):
         for p in self.packages:
             p.update_status(new_state)
 
+    def get_linked_package_ids(self) -> List[int]:
+        output: List[int] = []
+        for package in self.packages:
+            output.extend(package.linked_package_ids)
+        return output
+
+    def is_linked_to_id(self, remote_id: int):
+        return any(x for x in self.packages if remote_id in x.linked_package_ids)
+
+    def is_linked_to_ids(self, remote_ids: List[int]):
+        return any(x for x in remote_ids if self.is_linked_to_id(x))
+
+    def contains_package_id(self, search_id: int) -> bool:
+        return any([x for x in self.packages if x.package_id == search_id])
+
     def __repr__(self):
         return f"PackageGroup({len(self.packages)})"
 

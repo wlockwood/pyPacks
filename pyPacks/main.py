@@ -10,6 +10,7 @@ sim_time = SimTime(800, 1700)  # Global time tracker
 # Initial data load
 locations = read_locations("sample_locations.csv")
 packages = read_packages("sample_packages.csv", locations, sim_time)
+
 routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
 
 # Build trucks. There's a third truck, but I think it's an error in the instructions.

@@ -23,6 +23,8 @@ class Truck(object):
         self.sim_time = sim_time
 
     def load_package_group(self, package_group: PackageGroup):
+        if(self.get_package_count() + package_group.get_count() > self.package_capacity):
+            raise OverflowError(f"ERROR: Truck {self.truck_num} can't fit {package_group} on it!")
         self.package_groups.append(package_group)
         self.log.append(TruckLogEntry.new_load_entry(package_group, self.sim_time))
         package_group.update_status(PackageStatus.LOADED_ON_TRUCK)
