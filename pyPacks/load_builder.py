@@ -37,20 +37,23 @@ from model.truck import Truck
 from model.location import Location
 
 
-class RouteBuilder(object):
+class LoadBuilder(object):
 
     def __init__(self, locations, packages, trucks, routing_table: RoutingTable):
         self.locations = locations
         self.packages = packages
-        self.package_groups = self.group_packages()
+        self.package_groups = self.group_packages(packages)
+        self.build_pg_object_links(self.package_groups)
+
         self.trucks = trucks
         self.routing_table = routing_table
 
-    def group_packages(self):
+    @staticmethod
+    def group_packages(packages):
         """Group undelivered packages by location and availability."""
         # Group package by location and status
         keyfunc = lambda x: x.dest_location.id + "-" + x.status.value
-        sorted_packs = sorted(self.packages, key=keyfunc)
+        sorted_packs = sorted(packages, key=keyfunc)
         grouped_packs = groupby(sorted_packs, keyfunc)
 
         # Turn Grouper objects into PackageGroups
@@ -61,6 +64,14 @@ class RouteBuilder(object):
             # print(f"Location {k} has {sum(1 for x in this_pg.packages)} packages")
         return package_groups
 
+    @staticmethod
+    def build_pg_object_links(package_groups: List[PackageGroup]):
+        for pg in package_groups:
+            link_ids = pg.get_linked_package_ids()
+            for a_linked_id in link_ids:
+                linked_pg = PackageGroup.get_owning_package_group(a_linked_id)
+                pg.linked_package_groups.append(linked_pg)
+
     def choose_starting_group(self) -> PackageGroup:
         """Pick the farthest unconstrained package from the hub, prioritizing earlier deadlines."""
         # TODO: Add priority for packages with early deliver deadlines
@@ -69,7 +80,9 @@ class RouteBuilder(object):
         print(farthest_package_group)
         return farthest_package_group
 
-    def determine_truckload(self, truck: Truck) -> List[PackageGroup]:
+    def determine_truckload(self, truck: Truck):
+        """Loads a truck's worth of packages.
+        Starts with farthest valid package and picks nearest neighbors from there until full."""
         # TODO: Seriously, prioritize package groups with deadlines
         available_pgroups: List[PackageGroup] = [x for x in self.package_groups if
                                                  x.get_status() == PackageStatus.READY_FOR_PICKUP]
@@ -91,30 +104,23 @@ class RouteBuilder(object):
             nn_pg: PackageGroup = [x for x in available_pgroups if x.destination == nn_loc][0]
 
             # Check for linked packages/groups
-            nn_pg_ids = [p.package_id for p in nn_pg.packages]
-            if '15' in nn_pg_ids:
-                print("PAUSE!")
-            linked_pgs = [x for x in available_pgroups if
-                          x.is_linked_to_ids(nn_pg_ids)]
-            # If there are linked packages, see if any of *those* packages have links
-            for a_linked_pg in linked_pgs:
-                print(a_linked_pg)
+            linked_pgs = nn_pg.get_linked_package_groups()
 
             linked_count = sum([x.get_count() for x in linked_pgs])
-            if linked_count:
+            if len(linked_pgs) > 1:
                 print(f"Attempting to load {linked_count} linked packages: {linked_pgs}")
 
             # Check to see if this PackageGroup will fit
-            can_fit = truck.get_package_count() + nn_pg.get_count() + linked_count <= truck.package_capacity
+            can_fit = truck.get_package_count() + linked_count <= truck.package_capacity
             allowed_on_truck = len(nn_pg.packages[0].valid_truck_ids) == 0 or \
                                truck.truck_num in nn_pg.packages[0].valid_truck_ids
             if can_fit and allowed_on_truck:  # Allowed to be on this truck
-                truck.load_package_group(nn_pg)
                 for pg in linked_pgs:
                     truck.load_package_group(pg)
             else:
                 location_skip_list.append(nn_loc)  # Bypass this location next time
 
+        # Determine rough stats using nearest neighbor routing.
         locations = [x.destination for x in truck.package_groups]
         i = 0
         distances: List[float] = []
@@ -122,7 +128,11 @@ class RouteBuilder(object):
             distances.append(self.routing_table.lookup(locations[i].id, locations[i + 1].id))
             i += 1
         total = sum(distances)
+        ids_string = ', '.join([str(x) for x in truck.get_loaded_ids()])
+        print("Final loaded IDs: " + ids_string)
         print("Distances:", distances)
         print(f"Total: {total:.1f}")
         print(f"Time to drive: {(total / 18):.1f}h")
-        return
+        return None
+
+    # TODO: Create method for optimizing routes.

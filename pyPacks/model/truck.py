@@ -46,13 +46,14 @@ class Truck(object):
     def get_locations_on_route(self) -> List[Location]:
         return [pg.destination for pg in self.package_groups]
 
-    def drive_to(self, destination_location_id):
-        print("Do things to make truck go places.")
-        # TODO: This should probably return an arrival time?
-
     def calculate_miles_driven(self):
         return sum(x.distance for x in self.log if x.entry_type == TruckLogEntryType.DROVE)
 
+    def get_loaded_ids(self):
+        output = []
+        for pg in self.package_groups:
+            output.extend(pg.get_ids())
+        return output
 
 class TruckLogEntryType(Enum):
     LOADED = auto()

@@ -61,7 +61,7 @@ class Package(object):
 
 class PackageStatus(Enum):
     READY_FOR_PICKUP = "Ready for pickup"
-    UNDELIVERABLE = "Undeliverable, constrained"
+    DELAYED = "Delayed"
     LOADED_ON_TRUCK = "Loaded on truck"
     DELIVERED = "Delivered"
     RETURN_TO_HUB = "Must return to hub"
