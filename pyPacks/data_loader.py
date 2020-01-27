@@ -13,14 +13,11 @@ def read_locations(source_file_name: str):
     with open(source_file_name) as location_file:
         location_reader = csv.DictReader(location_file)
         output_locations = []
-        next(location_reader)  # Skips the header row
 
-        int_fieldnames = [i for i in location_reader.fieldnames if re.match('\d+', i)]
-
-        distance_array_fields = list(map(lambda x: int(x), int_fieldnames))  # Not sure this is necessary?
+        int_fieldnames = [i for i in location_reader.fieldnames if re.match(r'\d+', i)]
 
         for row in location_reader:
-            # Build distance array
+            # Build distance dictionary
             my_dists = dict.fromkeys(int_fieldnames, 0)
 
             for ifn in my_dists.keys():
@@ -29,9 +26,8 @@ def read_locations(source_file_name: str):
                 except ValueError:
                     my_dists[ifn] = -1
             # Add to output
-            this_row_location = Location(row["ID"], row["Name"], row["Address"], my_dists)
+            this_row_location = Location(int(row["ID"]), row["Name"], row["Address"], my_dists)
             output_locations.append(this_row_location)
-            # print(f"{this_row_location.name}, {len([x for x in my_dists.values() if x >= 0])} valid distance entries")
         print(f'Read in {location_reader.line_num} lines from {source_file_name}, '
               f'created {len(output_locations)} package objects.')
         return output_locations
@@ -45,7 +41,6 @@ def read_packages(source_file_name: str, locations: List[Location], sim_time: Si
     """
     with open(source_file_name) as packages_file:
         packages_reader = csv.DictReader(packages_file)
-        next(packages_reader)  # Skips the header row
 
         # Build location dictionary
         loc_dict = {}
