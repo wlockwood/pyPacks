@@ -52,7 +52,7 @@ class LoadBuilder(object):
     def group_packages(packages):
         """Group undelivered packages by location and availability."""
         # Group package by location and status
-        keyfunc = lambda x: x.dest_location.id + "-" + x.status.value
+        keyfunc = lambda x: str(x.dest_location.loc_id) + "-" + x.status.value
         sorted_packs = sorted(packages, key=keyfunc)
         grouped_packs = groupby(sorted_packs, keyfunc)
 
@@ -76,7 +76,8 @@ class LoadBuilder(object):
         """Pick the farthest unconstrained package from the hub, prioritizing earlier deadlines."""
         # TODO: Add priority for packages with early deliver deadlines
         available_packages = [x for x in self.package_groups if x.get_status() == PackageStatus.READY_FOR_PICKUP]
-        farthest_package_group = max(available_packages, key=lambda x: self.routing_table.lookup(1, x.destination.id))
+        farthest_package_group = \
+            max(available_packages, key=lambda x: self.routing_table.lookup(1, x.destination.loc_id))
         print(farthest_package_group)
         return farthest_package_group
 
@@ -84,8 +85,10 @@ class LoadBuilder(object):
         """Loads a truck's worth of packages.
         Starts with farthest valid package and picks nearest neighbors from there until full."""
         # TODO: Seriously, prioritize package groups with deadlines
-        available_pgroups: List[PackageGroup] = [x for x in self.package_groups if
-                                                 x.get_status() == PackageStatus.READY_FOR_PICKUP]
+        # TODO: New linked package logic makes for horrible routing
+        available_pgroups = \
+            lambda: [x for x in self.package_groups if x.get_status() == PackageStatus.READY_FOR_PICKUP]
+
         location_skip_list: List[Location] = []  # Locations that need too many packages delivered to fit in what's left
         last = self.choose_starting_group()
         truck.load_package_group(last)
@@ -94,21 +97,21 @@ class LoadBuilder(object):
             # Find the next nearest place that needs a delivery
             # valid_locations is available_pgroups less already loaded locations
             valid_locations = \
-                [pg.destination for pg in available_pgroups if pg.destination not in truck.get_locations_on_route()
+                [pg.destination for pg in available_pgroups() if pg.destination not in truck.get_locations_on_route()
                  and pg.destination not in location_skip_list]
             try:
                 nn_loc: Location = self.routing_table.get_nearest_neighbor_of_set(last.destination, valid_locations)
             except ValueError:
                 print("No more packages available for this truck at this time.")
                 break
-            nn_pg: PackageGroup = [x for x in available_pgroups if x.destination == nn_loc][0]
+            nn_pg: PackageGroup = [x for x in available_pgroups() if x.destination == nn_loc][0]
 
             # Check for linked packages/groups
             linked_pgs = nn_pg.get_linked_package_groups()
 
             linked_count = sum([x.get_count() for x in linked_pgs])
             if len(linked_pgs) > 1:
-                print(f"Attempting to load {linked_count} linked packages: {linked_pgs}")
+                print(f"Attempting to load {linked_count} linked packages: {linked_pgs}...")
 
             # Check to see if this PackageGroup will fit
             can_fit = truck.get_package_count() + linked_count <= truck.package_capacity
@@ -125,10 +128,10 @@ class LoadBuilder(object):
         i = 0
         distances: List[float] = []
         while i < (len(locations) - 1):
-            distances.append(self.routing_table.lookup(locations[i].id, locations[i + 1].id))
+            distances.append(self.routing_table.lookup(locations[i].loc_id, locations[i + 1].loc_id))
             i += 1
         total = sum(distances)
-        ids_string = ', '.join([str(x) for x in truck.get_loaded_ids()])
+        ids_string = ', '.join([str(x) for x in sorted(truck.get_loaded_ids())])
         print("Final loaded IDs: " + ids_string)
         print("Distances:", distances)
         print(f"Total: {total:.1f}")

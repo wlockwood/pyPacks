@@ -5,6 +5,7 @@ from model.routing_table import RoutingTable
 from model.truck import Truck
 from model.sim_time import SimTime, EventAdder, EventTypes
 from load_builder import LoadBuilder
+import status_printer
 
 
 def prompt_with_check(prompt_string: str, input_options: List[str], allow_blank=True) -> str:
@@ -36,14 +37,19 @@ routing_table = RoutingTable(locations)  # Build location+location distance look
 trucks = [Truck(1, sim_time), Truck(2, sim_time), Truck(3, sim_time)]
 load_builder = LoadBuilder(locations, packages, trucks, routing_table)
 
+status_printer.print_package_status(packages)
+
 print("\n-------- Truck 1 --------")
 load_builder.determine_truckload(trucks[0])
 print("\n-------- Truck 2 --------")
 load_builder.determine_truckload(trucks[1])
-print("\n-------- Truck 3 --------")
-load_builder.determine_truckload(trucks[2])
 exit(0)
 
+
+print("\n-------- Truck 3 --------")
+load_builder.determine_truckload(trucks[2])
+
+continue_string = "Press enter to continue" # I hate this, but "any key" is apparently platform dependent
 while sim_time.in_business_hours():
     events_triggered_this_minute = sim_time.increment()
     if sim_time.get_now() % 100 == 0 or any(events_triggered_this_minute):
@@ -53,17 +59,23 @@ while sim_time.in_business_hours():
             print(e)
             if e.event_type == EventTypes.DELAYED_PACKAGES_ARRIVED:
                 delayed_packages_arrive(packages)
+            if e.event_type == EventTypes.REQ_STATUS_CHECK:
+                status_printer.print_package_status(packages)
+                input(continue_string)
         user_input = prompt_with_check("Input command:", ["load", "status", "address change"])
         if user_input == "load":
-            print("TODO: Just load a truck? Not sure.")
+            load_builder.determine_truckload(trucks[0])
         elif user_input == "status":
-            print("TODO: write package status display code")
+            status_printer.print_package_status(packages)
+            input(continue_string)
         elif user_input == "address change":
             print("TODO: write address change code")
         else:
             print("Continuing...")
 
 print("Day over!")
+
+
 
 """
 Flow:

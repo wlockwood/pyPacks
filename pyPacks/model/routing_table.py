@@ -20,7 +20,7 @@ class RoutingTable(object):
 
         for source_loc in self.locations:
             for dest_loc in source_loc.distances:
-                src = source_loc.id
+                src = source_loc.loc_id
                 dest = int(dest_loc)
                 distance = source_loc.distances[dest_loc]
 
@@ -70,13 +70,13 @@ class RoutingTable(object):
 
     def get_nearest_neighbor(self, start: Location, ignore_locations: List[Location] = []) -> Location:
         """Wrapper for get_nearest_neighbor_by_id that handles remapping the object."""
-        nearest_id = self.get_nearest_neighbor_by_id(Location.id, [x.id for x in ignore_locations])
-        return next(x for x in self.locations if x.id == start.id)
+        nearest_id = self.get_nearest_neighbor_by_id(Location.id, [x.loc_id for x in ignore_locations])
+        return next(x for x in self.locations if x.id == start.loc_id)
 
     def get_nearest_neighbor_of_set(self, start: Location, other_locs: List[Location]) -> Location:
         distances = {}
         for i in other_locs:
-            distances[i] = self.lookup(start.id, i.id)
+            distances[i] = self.lookup(start.loc_id, i.loc_id)
         return min(distances, key=distances.get)
 
     @staticmethod
