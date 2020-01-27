@@ -8,7 +8,7 @@ from typing import List
 
 from model.location import Location
 from model.sim_time import SimTime
-from model.package import Package,PackageStatus
+from model.package import Package,PackageStatus,InvalidOperationFromStatusError
 from model.package_group import PackageGroup
 
 
@@ -23,14 +23,21 @@ class Truck(object):
         self.sim_time = sim_time
 
     def load_package_group(self, package_group: PackageGroup):
-        if(self.get_package_count() + package_group.get_count() > self.package_capacity):
+        # Don't load package group if it won't fit on the truck
+        if self.get_package_count() + package_group.get_count() > self.package_capacity:
             raise OverflowError(f"ERROR: Truck {self.truck_num} can't fit {package_group} on it!")
+
+        # Don't load the package group if any of its items aren't ready for pickup
+        if package_group.get_status() != PackageStatus.READY_FOR_PICKUP:
+            raise InvalidOperationFromStatusError(
+                f"Can't load package group {package_group} because it's currently {package_group.get_status()}")
+
         self.package_groups.append(package_group)
         self.log.append(TruckLogEntry.new_load_entry(package_group, self.sim_time))
         package_group.update_status(PackageStatus.LOADED_ON_TRUCK)
         package_listing: List[Package] = [x.package_id for x in package_group.packages]
-        print(f"Loaded {package_group.get_count()} packages {package_listing} bound for '{package_group.destination.name}'"
-              f" onto truck {self.truck_num}. "
+        print(f"Loaded {package_group.get_count()} packages {package_listing} "
+              f"bound for '{package_group.destination.name}' onto truck {self.truck_num}. "
               f"Now at {self.get_package_count()} packages on truck")
 
     def unload_package_group(self, package_group: PackageGroup):
