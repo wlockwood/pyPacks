@@ -36,7 +36,7 @@ class PackageGroup(object):
         found_pgs = set(found_pgs)
         found_pgs.add(self)
         for pg in (set(self.linked_package_groups) - found_pgs):
-            print(f"{self} had {len(self.linked_package_groups)} links. Depth: {depth_so_far}")
+            # print(f"{self} had {len(self.linked_package_groups)} links. Depth: {depth_so_far}")  # DEBUG!
             found_pgs = found_pgs.union(pg.get_linked_package_groups(found_pgs, depth_so_far))
         return found_pgs
 
