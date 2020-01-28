@@ -1,12 +1,12 @@
 from enum import Enum
 from typing import List
 
+
 class EventTypes(Enum):
     TRUCK_ARRIVAL = "Truck arrived"
     REQ_STATUS_CHECK = "Mandatory check time hit"
     REQ_ADDRESS_CHANGE = "Mandatory address change time hit"
     DELAYED_PACKAGES_ARRIVED = "Delayed packages have arrived"
-
 
 
 class SimEvent(object):
@@ -32,7 +32,7 @@ class SimTime(object):
         return self.current
 
     def get_min(self):
-        self.current//100
+        self.current // 100
 
     def increment(self):
         self.current += 1
@@ -47,6 +47,7 @@ class SimTime(object):
     def in_business_hours(self):
         return self.initial_time <= self.current < self.end_of_day
 
+
 class EventAdder(object):
     @staticmethod
     def add_events(sim_time: SimTime):
@@ -55,3 +56,11 @@ class EventAdder(object):
         sim_time.add_event(EventTypes.REQ_STATUS_CHECK, 1300)
         sim_time.add_event(EventTypes.DELAYED_PACKAGES_ARRIVED, 905)
         sim_time.add_event(EventTypes.REQ_ADDRESS_CHANGE, 1020)
+
+
+def parse_time(time_string) -> float:
+    if time_string == "EOD":
+        return 1700
+    meridian_string = time_string[-2:].lower()  # Last two characters will be am/pm
+    time = float(time_string[:-3].replace(":", "")) + 12 * (meridian_string.__contains__("pm"))
+    return time

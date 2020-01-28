@@ -67,44 +67,49 @@ class LoadBuilder(object):
     @staticmethod
     def build_pg_object_links(package_groups: List[PackageGroup]):
         for pg in package_groups:
+            # Forward links
             link_ids = pg.get_linked_package_ids()
             for a_linked_id in link_ids:
                 linked_pg = PackageGroup.get_owning_package_group(a_linked_id)
-                pg.linked_package_groups.append(linked_pg)
+                pg.linked_package_groups.add(linked_pg)  # Forward
+                linked_pg.linked_package_groups.add(pg)  # Reverse
 
     def choose_starting_group(self) -> PackageGroup:
         """Pick the farthest unconstrained package from the hub, prioritizing earlier deadlines."""
         # TODO: Add priority for packages with early deliver deadlines
+        return self.get_available_prioritized()[0]
+
+    def get_available_prioritized(self) -> List[PackageGroup]:
+        """The order packages should be picked up in current conditions."""
         available_packages = [x for x in self.package_groups if x.get_status() == PackageStatus.READY_FOR_PICKUP]
-        farthest_package_group = \
-            max(available_packages, key=lambda x: self.routing_table.lookup(1, x.destination.loc_id))
-        print(farthest_package_group)
-        return farthest_package_group
+        # Packages due soonest, preferring farther from hub
+        sorted_pgs = sorted(available_packages, key=lambda x:
+        x.get_remaining_time() - self.routing_table.lookup(1, x.destination.loc_id) / 100)
+        return sorted_pgs
 
     def determine_truckload(self, truck: Truck):
         """Loads a truck's worth of packages.
         Starts with farthest valid package and picks nearest neighbors from there until full."""
         # TODO: Seriously, prioritize package groups with deadlines
         # TODO: New linked package logic makes for horrible routing
-        available_pgroups = \
-            lambda: [x for x in self.package_groups if x.get_status() == PackageStatus.READY_FOR_PICKUP]
-
         location_skip_list: List[Location] = []  # Locations that need too many packages delivered to fit in what's left
         last = self.choose_starting_group()
-        truck.load_package_group(last)
 
         while truck.get_package_count() < truck.package_capacity:
             # Find the next nearest place that needs a delivery
             # valid_locations is available_pgroups less already loaded locations
             valid_locations = \
-                [pg.destination for pg in available_pgroups() if pg.destination not in truck.get_locations_on_route()
-                 and pg.destination not in location_skip_list]
-            try:
-                nn_loc: Location = self.routing_table.get_nearest_neighbor_of_set(last.destination, valid_locations)
-            except ValueError:
-                print("No more packages available for this truck at this time.")
-                break
-            nn_pg: PackageGroup = [x for x in available_pgroups() if x.destination == nn_loc][0]
+                [pg.destination for pg in self.get_available_prioritized()
+                 if pg.destination not in truck.get_locations_on_route() and pg.destination not in location_skip_list]
+            if truck.get_package_count() == 0:
+                nn_loc = last.destination
+            else:
+                try:
+                    nn_loc: Location = self.routing_table.get_nearest_neighbor_of_set(last.destination, valid_locations)
+                except ValueError:
+                    print("No more packages available for this truck at this time.")
+                    break
+            nn_pg: PackageGroup = [x for x in self.get_available_prioritized() if x.destination == nn_loc][0]
 
             # Check for linked packages/groups
             linked_pgs = nn_pg.get_linked_package_groups()
@@ -119,11 +124,16 @@ class LoadBuilder(object):
                                truck.truck_num in nn_pg.packages[0].valid_truck_ids
             if can_fit and allowed_on_truck:  # Allowed to be on this truck
                 for pg in linked_pgs:
-                    truck.load_package_group(pg)
+                    if pg not in truck.package_groups:
+                        truck.load_package_group(pg)
+                    location_skip_list.append(pg.destination)
+                last = nn_pg
+                if len(linked_pgs) > 1:
+                    print(f"Successfully loaded {linked_count} linked packages.")
             else:
                 location_skip_list.append(nn_loc)  # Bypass this location next time
 
-        # Determine rough stats using nearest neighbor routing.
+        # Determine rough stats using load-order routing.
         locations = [x.destination for x in truck.package_groups]
         i = 0
         distances: List[float] = []

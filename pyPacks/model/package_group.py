@@ -11,7 +11,7 @@ class PackageGroup(object):
         self.destination: Location = self.packages[0].dest_location
         for p in package_list:
             self.package_group_dict[p.package_id] = self
-        self.linked_package_groups: List[PackageGroup] = []
+        self.linked_package_groups: Set[PackageGroup] = set()
 
     @classmethod
     def get_owning_package_group(cls, package_id: int):
@@ -30,13 +30,17 @@ class PackageGroup(object):
         for p in self.packages:
             p.update_status(new_state)
 
+    def get_remaining_time(self) -> float:
+        return min(x.get_rem_time() for x in self.packages)
+
     def get_linked_package_groups(self, found_pgs: Set['PackageGroup'] = [], depth_so_far = 0):
-        """Recursively find linked package groups."""
+        """Recursively find linked package groups.
+        Requires object links to have been created by load_builder"""
         depth_so_far += 1
         found_pgs = set(found_pgs)
         found_pgs.add(self)
         for pg in (set(self.linked_package_groups) - found_pgs):
-            # print(f"{self} had {len(self.linked_package_groups)} links. Depth: {depth_so_far}")  # DEBUG!
+            #print(f"{self} had {len(self.linked_package_groups)} links: {self.linked_package_groups}. Depth: {depth_so_far}")  # DEBUG!
             found_pgs = found_pgs.union(pg.get_linked_package_groups(found_pgs, depth_so_far))
         return found_pgs
 

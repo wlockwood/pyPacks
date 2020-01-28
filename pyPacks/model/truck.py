@@ -19,7 +19,7 @@ class Truck(object):
         self.package_groups: List[PackageGroup] = []  # Packages currently on truck
         self.log = []  # Events involving this truck
         self.truck_num = truck_num
-        self.current_location = 0  # All trucks start at hub / WGU
+        self.current_location = 1  # All trucks start at hub / WGU
         self.sim_time = sim_time
 
     def load_package_group(self, package_group: PackageGroup):

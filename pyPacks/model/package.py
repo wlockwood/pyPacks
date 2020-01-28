@@ -1,8 +1,9 @@
 import re
 from enum import Enum, auto
 from typing import List
-from model.sim_time import SimTime
+from model.sim_time import SimTime, parse_time
 from model.location import Location
+
 
 # TODO: Add in "priority" concept for packages with delivery deadlines.
 class Package(object):
@@ -22,7 +23,7 @@ class Package(object):
         self.mass_kg = mass_kg
 
         # Constraints
-        self.delivery_deadline: float = delivery_deadline  # 0 indicates EOD
+        self.delivery_deadline: float = parse_time(delivery_deadline)  # 0 indicates EOD
         self.delayed_until: float = 0  # 0 indicates no delay
         self.valid_truck_ids: List[int] = []  # By default, all trucks are valid
         self.linked_package_ids = []
@@ -53,12 +54,15 @@ class Package(object):
             self.update_status(PackageStatus.DELAYED)
             dn_index = self.notes.find(delayed_note) + len(delayed_note) + 1
             delay_time_string = self.notes[dn_index:]
-            meridian_string = delay_time_string[-2:].lower()  # Last two characters will be am/pm
-            time = float(delay_time_string[:-3].replace(":", "")) + 12 * (meridian_string.__contains__("pm"))
-            self.delayed_until = time
+            self.delayed_until = parse_time(delay_time_string)
         else:
             self.update_status(PackageStatus.READY_FOR_PICKUP)
 
+    def get_rem_time(self) -> float:
+        """Retrieves the remaining time until delivery in hours."""
+        rem = self.delivery_deadline - self.my_sim_time_tracker.get_now()
+        rem_hours = rem / 100
+        return rem_hours
 
     def update_status(self, new_status):
         # Prevent transitions from DELAYED to LOADED_ON_TRUCK
@@ -77,16 +81,19 @@ class Package(object):
 
 class InvalidOperationFromStatusError(Exception):
     """An operation was attempted that isn't valid with this status."""
+
     def __init__(self, message):
         self.message = message
 
 
 class StatusTransitionError(Exception):
     """An invalid status change was attempted."""
+
     def __init__(self, previous_status, next_status):
         self.previous = previous_status
         self.next = next_status
         self.message = f"Can't move from {previous_status} to {next_status}!"
+
 
 class PackageStatus(Enum):
     INITIALIZED = "Package created"

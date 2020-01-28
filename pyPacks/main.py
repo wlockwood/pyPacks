@@ -43,12 +43,10 @@ print("\n-------- Truck 1 --------")
 load_builder.determine_truckload(trucks[0])
 print("\n-------- Truck 2 --------")
 load_builder.determine_truckload(trucks[1])
-exit(0)
-
-
 print("\n-------- Truck 3 --------")
 load_builder.determine_truckload(trucks[2])
 
+exit(0)
 continue_string = "Press enter to continue" # I hate this, but "any key" is apparently platform dependent
 while sim_time.in_business_hours():
     events_triggered_this_minute = sim_time.increment()
