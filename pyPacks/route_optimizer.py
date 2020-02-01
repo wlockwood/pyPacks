@@ -80,31 +80,41 @@ class RouteOptimizer(object):
             index += 1
         return output
 
-    def get_optimized_bfs(self, remaining_locations: List[Location] = 0, path_so_far: List[Location] = 0,
-                          distance_so_far: float = 0, best_full_route_dist: float = float("inf")):
+    def get_optimized_bfs(self, remaining_locations: List[Location] = None, path_so_far: List[Location] = None,
+                          best_complete_path: List[Location] = None, best_dist: List[float] = None):
         # Initialization
-        if remaining_locations == 0:
-            remaining_locations = self.route_locs
-        if path_so_far == 0:
+        if path_so_far is None:
             path_so_far = [self.hub]
-        else:
-            path_so_far = path_so_far.copy()
+        if remaining_locations is None:
+            remaining_locations = self.route_locs
+        if best_dist is None:
+            best_dist = [float("inf")]
+
+        # Base case
+        if len(remaining_locations) == 0:
+            path_so_far.append(self.hub)
+            distances = self.get_route_distances(path_so_far)
+            total = sum(distances)
+            # print(f"Completed path of {total:.2f} miles: ", ', '.join(str(x.loc_id) for x in path_so_far))
+            return path_so_far
+
+        child_paths = []
         for loc in remaining_locations:
-            # End logic
-            if len(remaining_locations) > 0:
-                added_dist = self.route_table.lookup(loc.loc_id, path_so_far[-1].loc_id)
-                distance_so_far += added_dist
-                path_so_far.append(loc)
+            my_children = [x for x in remaining_locations if x != loc]
+            psf = path_so_far.copy()
+            psf.append(loc)
+            # print("PSF: ", ', '.join(str(x.loc_id) for x in psf))
+            my_path = self.get_optimized_bfs(my_children, psf)
+            child_paths.append(my_path)
 
-            if distance_so_far > best_full_route_dist:
-                continue
-
-            path_so_far_string = ", ".join(str(x.loc_id) for x in path_so_far)
-            print("PSF: ", path_so_far_string)
-
-            my_children = remaining_locations[1:]
-            self.get_optimized_bfs(my_children, path_so_far, distance_so_far)
-        print(f"Completed path of {distance_so_far:.2f} miles: {', '.join(str(x.loc_id) for x in path_so_far)}")
+        best_child_dist = float("inf")
+        best_child_path = []
+        for path in child_paths:
+            total = sum(self.get_route_distances(path))
+            if total < best_child_dist:
+                best_child_path = path
+                best_child_dist = total
+        return best_child_path
 
     def find_furthest_from(self, base_loc: Location):
         farthest_so_far: Location = 0
@@ -163,6 +173,11 @@ class RouteOptimizer(object):
         if route[-1] is not self.hub:
             route.append(self.hub)
 
+        distances = self.get_route_distances(route)
+        total = sum(distances)
+        print(f"Opt type: {description:^25}\tTotal: {total:.2f}\tTime to drive: {(total / 18):.1f}h")
+
+    def get_route_distances(self, route: List[Location]) -> List[float]:
         i = 0
         distances: List[float] = []
         while i < (len(route) - 1):
@@ -170,8 +185,8 @@ class RouteOptimizer(object):
             if next is not None:
                 distances.append(next)
             i += 1
-        total = sum(distances)
-        print(f"Opt type: {description:^25}\tTotal: {total:.2f}\tTime to drive: {(total / 18):.1f}h")
+        return distances
+
 
     def run_time_test(self, description: str, method: Callable, test_count: int = 10000):
         times = []
@@ -192,6 +207,6 @@ class RouteOptimizer(object):
         print(f"-- Time tests ({len(self.route_locs)} locations, {test_count} runs) - All times ms --")
         self.run_time_test("NearestN", self.get_optimized_nn, test_count)
         self.run_time_test("Coproximity", self.get_optimized_cpm, test_count)
-        # self.run_time_tests("Alt-Coprox", self.get_optimized_alt_cpm())
+        self.run_time_test("BFS / Brute", self.get_optimized_bfs(), 5)
 
 

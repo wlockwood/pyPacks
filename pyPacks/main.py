@@ -31,8 +31,12 @@ def profile_optimization_strategies():
 
     # Testing lots of locations
     print("All standard locations")
-    optimizer = RouteOptimizer(locations[1:5], test_routing_table, locations[0])
-    optimizer.get_optimized_bfs()
+    optimizer = RouteOptimizer(locations[1:10], test_routing_table, locations[0])
+    bfs = optimizer.get_optimized_bfs()
+    optimizer.print_route_evaluation("BFS", bfs)
+    optimizer.print_route_evaluation("BFS", bfs)
+    optimizer.print_route_evaluation("BFS", bfs)
+    optimizer.run_time_tests(100)
     exit(0)
 
     optimizer.run_time_tests(100)
