@@ -6,6 +6,7 @@ from model.truck import Truck
 from model.sim_time import SimTime, EventAdder, EventTypes
 from load_builder import LoadBuilder
 import status_printer
+from route_optimizer import RouteOptimizer
 
 
 def prompt_with_check(prompt_string: str, input_options: List[str], allow_blank=True) -> str:
@@ -15,6 +16,7 @@ def prompt_with_check(prompt_string: str, input_options: List[str], allow_blank=
             return user_string
         else:
             print(f"'{user_string}' isn't a valid option.")
+
 
 def delayed_packages_arrive(packages: List[Package]):
     for p in [x for x in packages if x.status == PackageStatus.DELAYED]:
@@ -37,17 +39,28 @@ routing_table = RoutingTable(locations)  # Build location+location distance look
 trucks = [Truck(1, sim_time), Truck(2, sim_time), Truck(3, sim_time)]
 load_builder = LoadBuilder(locations, packages, trucks, routing_table)
 
-status_printer.print_package_status(packages)
+for truck in trucks:
+    print(f"\n-------- Truck {truck.truck_num} --------")
+    load_builder.determine_truckload(truck)
+    route = RouteOptimizer(truck.get_locations_on_route(), routing_table, locations[0])
+    route.run_time_tests()
 
-print("\n-------- Truck 1 --------")
-load_builder.determine_truckload(trucks[0])
-print("\n-------- Truck 2 --------")
-load_builder.determine_truckload(trucks[1])
-print("\n-------- Truck 3 --------")
-load_builder.determine_truckload(trucks[2])
+    #route.print_route_evaluation("Unoptimized", route.route_locs)
+
+    nn_route = route.get_optimized_nn()
+    #route.print_route_evaluation("Nearest neighbor", nn_route)
+
+    cpm_route = route.get_optimized_cpm()
+    #route.print_route_evaluation("Antisocial Coproximity", cpm_route)
+
+
+print("All locations, test only")
+all_locations_route = RouteOptimizer(locations[1:], routing_table, locations[0])
+all_locations_route.run_time_tests()
 
 exit(0)
-continue_string = "Press enter to continue" # I hate this, but "any key" is apparently platform dependent
+
+continue_string = "Press enter to continue"  # I hate this, but "any key" is apparently platform dependent
 while sim_time.in_business_hours():
     events_triggered_this_minute = sim_time.increment()
     if sim_time.get_now() % 100 == 0 or any(events_triggered_this_minute):
@@ -72,8 +85,6 @@ while sim_time.in_business_hours():
             print("Continuing...")
 
 print("Day over!")
-
-
 
 """
 Flow:
