@@ -62,24 +62,6 @@ class RouteOptimizer(object):
             index += 1
         return output
 
-    def get_optimized_alt_cpm(self):
-        """
-        Uses the singular-antisocial coproximity metric ("closest to me, farthest from everything else") heuristic.
-        """
-        size = len(self.route_locs) + 2
-        output = [self.hub] * size
-
-        remaining_locations = self.route_locs.copy()
-        index = 1
-        while True:
-            if len(remaining_locations) == 0:
-                break
-            my_cpms = self.get_list_alt_coproximities(output[index-1], remaining_locations)
-            output[index] = my_cpms[0][0]  # Takes largest CPM's location
-            # print(f"Next nearest to {output[index-1].shortname} is {output[index].shortname}.")
-            remaining_locations.remove(output[index])
-            index += 1
-        return output
 
     def get_optimized_nn(self):
         """
@@ -97,6 +79,32 @@ class RouteOptimizer(object):
             remaining_locations.remove(output[index])
             index += 1
         return output
+
+    def get_optimized_bfs(self, remaining_locations: List[Location] = 0, path_so_far: List[Location] = 0,
+                          distance_so_far: float = 0, best_full_route_dist: float = float("inf")):
+        # Initialization
+        if remaining_locations == 0:
+            remaining_locations = self.route_locs
+        if path_so_far == 0:
+            path_so_far = [self.hub]
+        else:
+            path_so_far = path_so_far.copy()
+        for loc in remaining_locations:
+            # End logic
+            if len(remaining_locations) > 0:
+                added_dist = self.route_table.lookup(loc.loc_id, path_so_far[-1].loc_id)
+                distance_so_far += added_dist
+                path_so_far.append(loc)
+
+            if distance_so_far > best_full_route_dist:
+                continue
+
+            path_so_far_string = ", ".join(str(x.loc_id) for x in path_so_far)
+            print("PSF: ", path_so_far_string)
+
+            my_children = remaining_locations[1:]
+            self.get_optimized_bfs(my_children, path_so_far, distance_so_far)
+        print(f"Completed path of {distance_so_far:.2f} miles: {', '.join(str(x.loc_id) for x in path_so_far)}")
 
     def find_furthest_from(self, base_loc: Location):
         farthest_so_far: Location = 0
@@ -145,7 +153,6 @@ class RouteOptimizer(object):
         for loc in of_set:
             cpms[loc] = (self.get_coproximity_metric(base_loc, loc))
         return sorted(cpms.items(), key=lambda x: x[1], reverse=True)
-
 
     def print_route_evaluation(self, description: str, route: List[Location]):
         route = route.copy()

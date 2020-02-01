@@ -37,7 +37,7 @@ def read_packages(source_file_name: str, locations: List[Location], sim_time: Si
     """Loads packages from the specified CSV file and returns a collection of package instances.
     :param source_file_name: The CSV file to load.
     :param locations: List of Location objects, probably from read_locations()
-    :param sim_time: Reference to the global simulation time object.
+    :param sim_time: Reference to the global simulation time object. Optional if only doing tests.
     """
     with open(source_file_name) as packages_file:
         packages_reader = csv.DictReader(packages_file)
