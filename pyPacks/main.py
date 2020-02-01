@@ -1,4 +1,5 @@
 from typing import List
+import time
 from data_loader import read_packages, read_locations
 from model.location import Location
 from model.package import Package, PackageStatus
@@ -27,25 +28,30 @@ def delayed_packages_arrive(packages: List[Package]):
 def profile_optimization_strategies():
     # Initial data load
     locations = read_locations("sample_locations.csv")
+    locations.extend(Location.generate_fake_locations(500))
     test_routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
 
     # Testing lots of locations
-    print("All standard locations")
-    optimizer = RouteOptimizer(locations[1:10], test_routing_table, locations[0])
-    bfs = optimizer.get_optimized_bfs()
-    optimizer.print_route_evaluation("BFS", bfs)
-    optimizer.print_route_evaluation("BFS", bfs)
-    optimizer.print_route_evaluation("BFS", bfs)
-    optimizer.run_time_tests(100)
-    exit(0)
 
-    optimizer.run_time_tests(100)
+    for count in range(25, len(locations), 25):
+        print(f"-- Optimization strategies with {count} locations --")
+        this_pass_locations = locations[1:count]
+        optimizer = RouteOptimizer(this_pass_locations, test_routing_table, locations[0])
+        start = time.perf_counter()
+        route = optimizer.get_optimized_nn()
+        elapsed = time.perf_counter() - start
+        optimizer.print_route_evaluation(f"Nearest Neighbor N={len(this_pass_locations)}", route, elapsed)
+
+        start = time.perf_counter()
+        route = optimizer.get_optimized_cpm()
+        elapsed = time.perf_counter() - start
+        optimizer.print_route_evaluation(f"AS Coproximity N={len(this_pass_locations)}", route, elapsed)
+    exit(0)
 
 
     print("Extra locations +50")
     locations.extend(Location.generate_fake_locations(50))
     test_routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
-
     optimizer = RouteOptimizer(locations[1:], test_routing_table, locations[0])
     optimizer.run_time_tests(100)
 
@@ -56,12 +62,14 @@ def profile_optimization_strategies():
     optimizer.run_time_tests(100)
 
 
+
 """
 ######### MAIN #########
 Basic strategy: wait for all packages to come in, start delivering everything with a deadline.
 """
 # Profiling-only mode
 if True:
+    #profile_bfs_by_locs()
     profile_optimization_strategies()
     exit(0)
 
@@ -82,14 +90,22 @@ for truck in trucks:
     print(f"\n-------- Truck {truck.truck_num} --------")
     load_builder.determine_truckload(truck)
     route = RouteOptimizer(truck.get_locations_on_route(), routing_table, locations[0])
-    nn_route = route.get_optimized_nn()
-    cpm_route = route.get_optimized_cpm()
-
     route.print_route_evaluation("Unoptimized", route.route_locs)
-    route.print_route_evaluation("Nearest neighbor", nn_route)
-    route.print_route_evaluation("Antisocial Coproximity", cpm_route)
 
-    route.run_time_tests(1000)
+    start = time.perf_counter()
+    nn_route = route.get_optimized_nn()
+    elapsed = time.perf_counter() - start
+    route.print_route_evaluation("Nearest neighbor", nn_route, elapsed)
+
+    start = time.perf_counter()
+    cpm_route = route.get_optimized_cpm()
+    elapsed = time.perf_counter() - start
+    route.print_route_evaluation("Antisocial Coproximity", cpm_route, elapsed)
+
+    start = time.perf_counter()
+    bfs_route = route.get_optimized_bfs()
+    elapsed = time.perf_counter() - start
+    route.print_route_evaluation("Breadth-First Search", bfs_route, elapsed)
 
 print("All locations, test only")
 all_locations_route = RouteOptimizer(locations[1:], routing_table, locations[0])

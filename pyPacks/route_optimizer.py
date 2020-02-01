@@ -33,6 +33,9 @@ Note: In most cases, I've chosen implementations by simplicity of explanation ra
 """
 
 class RouteOptimizer(object):
+    bfs_cutoff_fast = 7  # How many locations can BFS do in under a second?
+    bfs_cutoff_slow = 8  # How many locations can BFS do in under ten seconds?
+
     def __init__(self, route_locs: List[Location], route_table: RoutingTable, hub: Location):
         self.route_locs = []
 
@@ -43,6 +46,20 @@ class RouteOptimizer(object):
         # print(f"{len(route_locs)} locations, {len(self.route_locs)} distinct.")
         self.route_table = route_table
         self.hub = hub
+
+    def get_optimized_smart(self):
+        """Select algorithm from options and attempt to return best viable.
+        Run BFS if viable, or best of NN and CPM."""
+        if len(self.route_locs) < self.bfs_cutoff_slow:
+            return self.get_optimized_bfs()
+        else:
+            nn = self.get_optimized_nn()
+            cpm = self.get_optimized_cpm()
+            if self.get_route_distances(cpm) < self.get_route_distances(nn):
+                return cpm
+            else:
+                return nn
+
 
     def get_optimized_cpm(self):
         """
@@ -61,7 +78,6 @@ class RouteOptimizer(object):
             remaining_locations.remove(output[index])
             index += 1
         return output
-
 
     def get_optimized_nn(self):
         """
@@ -164,7 +180,7 @@ class RouteOptimizer(object):
             cpms[loc] = (self.get_coproximity_metric(base_loc, loc))
         return sorted(cpms.items(), key=lambda x: x[1], reverse=True)
 
-    def print_route_evaluation(self, description: str, route: List[Location]):
+    def print_route_evaluation(self, description: str, route: List[Location], elapsed: float = 0):
         route = route.copy()
 
         # Unoptimized routes don't have the hub
@@ -175,7 +191,8 @@ class RouteOptimizer(object):
 
         distances = self.get_route_distances(route)
         total = sum(distances)
-        print(f"Opt type: {description:^25}\tTotal: {total:.2f}\tTime to drive: {(total / 18):.1f}h")
+        print(f"Opt type: {description:^25}\tTotal: {total:.2f}\tTime to drive: {(total / 18):.1f}h"
+              f"\tCalc time: {elapsed*1000:5.3f}ms")
 
     def get_route_distances(self, route: List[Location]) -> List[float]:
         i = 0
@@ -207,6 +224,7 @@ class RouteOptimizer(object):
         print(f"-- Time tests ({len(self.route_locs)} locations, {test_count} runs) - All times ms --")
         self.run_time_test("NearestN", self.get_optimized_nn, test_count)
         self.run_time_test("Coproximity", self.get_optimized_cpm, test_count)
-        self.run_time_test("BFS / Brute", self.get_optimized_bfs(), 5)
+        if len(self.route_locs) <= RouteOptimizer.bfs_cutoff_fast:
+            self.run_time_test("BFS / Brute x5", self.get_optimized_bfs(), 5)
 
 
