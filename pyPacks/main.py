@@ -48,27 +48,12 @@ def profile_optimization_strategies():
         optimizer.print_route_evaluation(f"AS Coproximity N={len(this_pass_locations)}", route, elapsed)
     exit(0)
 
-
-    print("Extra locations +50")
-    locations.extend(Location.generate_fake_locations(50))
-    test_routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
-    optimizer = RouteOptimizer(locations[1:], test_routing_table, locations[0])
-    optimizer.run_time_tests(100)
-
-    print("Extra locations +500")
-    locations.extend(Location.generate_fake_locations(500))
-    test_routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
-    optimizer = RouteOptimizer(locations[1:], test_routing_table, locations[0])
-    optimizer.run_time_tests(100)
-
-
-
 """
 ######### MAIN #########
 Basic strategy: wait for all packages to come in, start delivering everything with a deadline.
 """
 # Profiling-only mode
-if True:
+if False:
     #profile_bfs_by_locs()
     profile_optimization_strategies()
     exit(0)
@@ -82,36 +67,10 @@ packages = read_packages("sample_packages.csv", locations, sim_time)
 routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
 
 # Build trucks. There's a third truck, but I think it's an error in the instructions.
-trucks = [Truck(1, sim_time), Truck(2, sim_time), Truck(3, sim_time)]
+trucks = [Truck(1, sim_time, locations[0]), Truck(2, sim_time, locations[0])]
 load_builder = LoadBuilder(locations, packages, trucks, routing_table)
 
-total_dists = []
-for truck in trucks:
-    print(f"\n-------- Truck {truck.truck_num} --------")
-    load_builder.determine_truckload(truck)
-    route = RouteOptimizer(truck.get_locations_on_route(), routing_table, locations[0])
-    route.print_route_evaluation("Unoptimized", route.route_locs)
-
-    start = time.perf_counter()
-    nn_route = route.get_optimized_nn()
-    elapsed = time.perf_counter() - start
-    route.print_route_evaluation("Nearest neighbor", nn_route, elapsed)
-
-    start = time.perf_counter()
-    cpm_route = route.get_optimized_cpm()
-    elapsed = time.perf_counter() - start
-    route.print_route_evaluation("Antisocial Coproximity", cpm_route, elapsed)
-
-    start = time.perf_counter()
-    bfs_route = route.get_optimized_bfs()
-    elapsed = time.perf_counter() - start
-    route.print_route_evaluation("Breadth-First Search", bfs_route, elapsed)
-
-print("All locations, test only")
-all_locations_route = RouteOptimizer(locations[1:], routing_table, locations[0])
-
-all_locations_route.run_time_tests()
-
+# Main Interaction Loop
 continue_string = "Press enter to continue"  # I hate this, but "any key" is apparently platform dependent
 while sim_time.in_business_hours():
     events_triggered_this_minute = sim_time.increment()
@@ -138,11 +97,4 @@ while sim_time.in_business_hours():
 
 print("Day over!")
 
-"""
-Flow:
-Build suggested delivery pattern
-Execute delivery pattern until delayed package time is hit
-"""
-
-# TODO: Print snapshots of current package status
 # TODO: Print snapshots of truck location
