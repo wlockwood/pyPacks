@@ -124,6 +124,8 @@ class RouteOptimizer(object):
         closest_dist: float = float("inf")
         for loc in my_set:
             my_dist = self.route_table.lookup(loc.loc_id, base_loc.loc_id)
+            if my_dist is None:
+                print(f"Looking up {loc.loc_id} to {base_loc.loc_id} failed")
             if my_dist < closest_dist:
                 closest_dist = my_dist
                 closest_so_far = loc
@@ -144,23 +146,8 @@ class RouteOptimizer(object):
             cpms[loc] = (self.get_coproximity_metric(base_loc, loc))
         return sorted(cpms.items(), key=lambda x: x[1], reverse=True)
 
-    def get_alt_coproximity_metric(self, base_loc: Location, candi_loc: Location, avoid_loc: Location):
-        """How close am I to X per distance from Y"""
-        dist_from_base = self.route_table.lookup(base_loc.loc_id, candi_loc.loc_id)
-        dist_from_avoid = self.route_table.lookup(candi_loc.loc_id, avoid_loc.loc_id)
-        output = dist_from_avoid / dist_from_base
-        print(f"{candi_loc.shortname} is {dist_from_base} miles from {base_loc.shortname} and is"
-              f"{dist_from_avoid:.1f} from {avoid_loc.shortname}. CPM = {output:.2f}")
-        return output
-
-    def get_list_alt_coproximities(self, base_loc, of_set: List[Location] = []):
-        cpms = {}
-        for loc in of_set:
-            cpms[loc] = (self.get_alt_coproximity_metric(self.hub, loc))
-        return sorted(cpms.items(), key=lambda x: x[1], reverse=True)
 
     def print_route_evaluation(self, description: str, route: List[Location]):
-        print(f"--Evaluating route: '{description}'--")
         route = route.copy()
 
         # Unoptimized routes don't have the hub
@@ -177,10 +164,7 @@ class RouteOptimizer(object):
                 distances.append(next)
             i += 1
         total = sum(distances)
-        #print("Distances:", distances)
-        print(f"Total: {total:.1f}")
-        print(f"Time to drive: {(total / 18):.1f}h")
-        print()
+        print(f"Opt type: {description:^25}\tTotal: {total:.2f}\tTime to drive: {(total / 18):.1f}h")
 
     def run_time_test(self, description: str, method: Callable, test_count: int = 10000):
         times = []
@@ -199,8 +183,8 @@ class RouteOptimizer(object):
 
     def run_time_tests(self, test_count: int = 10000):
         print(f"-- Time tests ({len(self.route_locs)} locations, {test_count} runs) - All times ms --")
-        self.run_time_test("NearestN", self.get_optimized_nn)
-        self.run_time_test("Coproximity", self.get_optimized_cpm)
+        self.run_time_test("NearestN", self.get_optimized_nn, test_count)
+        self.run_time_test("Coproximity", self.get_optimized_cpm, test_count)
         # self.run_time_tests("Alt-Coprox", self.get_optimized_alt_cpm())
 
 

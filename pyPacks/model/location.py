@@ -1,8 +1,11 @@
 from typing import List
+import random
 import re
 
 
 class Location(object):
+    loc_count = 0
+
     def __init__(self, location_id: int, name: str, address, distances):
         self.loc_id: int = location_id
         self.name = name
@@ -19,6 +22,21 @@ class Location(object):
         else:
             self.zip = ""
         self.distances = distances
+
+        Location.loc_count += 1
+
+    @classmethod
+    def generate_fake_locations(cls, count: int = 10) -> List['Location']:
+        id_offset = 100
+        print("Loc count:", cls.loc_count)
+        output = []
+        for i in range(1, count):
+            my_id = cls.loc_count + id_offset
+            distances = {}
+            for j in range(1, Location.loc_count + id_offset):
+                distances[j]=(random.random() * 10 % 50)
+            output.append(Location(my_id, f"Fake loc: {my_id:,d}", "no address,00000", distances))
+        return output
 
     def __repr__(self):
         return f"Location({self.loc_id},{self.name})"

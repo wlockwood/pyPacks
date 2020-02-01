@@ -1,5 +1,6 @@
 from typing import List
 from data_loader import read_packages, read_locations
+from model.location import Location
 from model.package import Package, PackageStatus
 from model.routing_table import RoutingTable
 from model.truck import Truck
@@ -35,27 +36,48 @@ locations = read_locations("sample_locations.csv")
 packages = read_packages("sample_packages.csv", locations, sim_time)
 routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
 
+# Testing lots of locations
+print("All locations, test only")
+all_locations_route = RouteOptimizer(locations[1:], routing_table, locations[0])
+all_locations_route.run_time_tests(100)
+
+print("Extra locations +50")
+locations.extend(Location.generate_fake_locations(50))
+routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
+
+all_locations_route = RouteOptimizer(locations[1:], routing_table, locations[0])
+all_locations_route.run_time_tests(100)
+
+print("Extra locations +500")
+locations.extend(Location.generate_fake_locations(500))
+routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
+
+all_locations_route = RouteOptimizer(locations[1:], routing_table, locations[0])
+all_locations_route.run_time_tests(5)
+exit(0)
+
 # Build trucks. There's a third truck, but I think it's an error in the instructions.
 trucks = [Truck(1, sim_time), Truck(2, sim_time), Truck(3, sim_time)]
 load_builder = LoadBuilder(locations, packages, trucks, routing_table)
 
+total_dists = []
 for truck in trucks:
     print(f"\n-------- Truck {truck.truck_num} --------")
     load_builder.determine_truckload(truck)
     route = RouteOptimizer(truck.get_locations_on_route(), routing_table, locations[0])
     route.run_time_tests()
 
-    #route.print_route_evaluation("Unoptimized", route.route_locs)
+    route.print_route_evaluation("Unoptimized", route.route_locs)
 
     nn_route = route.get_optimized_nn()
-    #route.print_route_evaluation("Nearest neighbor", nn_route)
+    route.print_route_evaluation("Nearest neighbor", nn_route)
 
     cpm_route = route.get_optimized_cpm()
-    #route.print_route_evaluation("Antisocial Coproximity", cpm_route)
-
+    route.print_route_evaluation("Antisocial Coproximity", cpm_route)
 
 print("All locations, test only")
 all_locations_route = RouteOptimizer(locations[1:], routing_table, locations[0])
+
 all_locations_route.run_time_tests()
 
 exit(0)
