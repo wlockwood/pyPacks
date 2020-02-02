@@ -59,6 +59,22 @@ class PackageGroup(object):
     def contains_package_id(self, search_id: int) -> bool:
         return any([x for x in self.packages if x.package_id == search_id])
 
+    def rebuild_package_group(self):
+        # Determine groups
+        print(f"Rebuilding {self}...")
+        distinct_locations = ()
+        for p in self.packages:
+            distinct_locations.add(p.dest_location)
+        new_pgs = []
+
+        print(f"Package group rebuild resulted in:")
+        for l in distinct_locations:
+            my_packages = [p for p in self.packages if p.dest_location == l]
+            new_pg = (PackageGroup(my_packages))
+            new_pgs.append(new_pg)
+            print(" - ", new_pg)
+        return new_pgs
+
     def __repr__(self):
         return f"PackageGroup({self.get_count()}: {', '.join([str(x.package_id) for x in self.packages])})"
 
