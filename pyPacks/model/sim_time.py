@@ -74,6 +74,7 @@ class EventAdder(object):
         sim_time.add_event(EventTypes.REQ_STATUS_CHECK, 1000)
         sim_time.add_event(EventTypes.REQ_STATUS_CHECK, 1300)
         sim_time.add_event(EventTypes.DELAYED_PACKAGES_ARRIVED, 905)
+        sim_time.add_event(EventTypes.DELAYED_PACKAGES_ARRIVED, 1020)
         sim_time.add_event(EventTypes.REQ_ADDRESS_CHANGE, 1020)
 
 

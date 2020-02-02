@@ -24,8 +24,8 @@ def prompt_with_check(prompt_string: str, input_options: List[str], allow_blank=
             print(f"'{user_string}' isn't a valid option.")
 
 
-def delayed_packages_arrive(packages: List[Package]):
-    for p in [x for x in packages if x.status == PackageStatus.DELAYED]:
+def delayed_packages_arrive(packages: List[Package], sim_time: SimTime):
+    for p in [x for x in packages if x.status == PackageStatus.DELAYED and x.delayed_until <= sim_time.get_now()]:
         p.update_status(PackageStatus.READY_FOR_PICKUP)
 
 
@@ -74,6 +74,7 @@ def cli_address_change(packages: List[Package], locations: List[Location]):
             user_int = int(user_string)
             user_package = ([p for p in packages if p.package_id == user_int])[0]
             if user_package:
+                print(user_package.verbose_str())
                 break
         except ValueError:
             print(f"String '{user_string}' is not a valid package Id. Try again.")
@@ -102,7 +103,8 @@ def cli_address_change(packages: List[Package], locations: List[Location]):
 
     # Recalculate package groups for this id
     pg = PackageGroup.get_owning_package_group(user_package.package_id)
-    new_pgs = pg.rebuild_package_group()
+    if pg.get_count() > 1:
+       new_pgs = pg.rebuild_package_group()  # Untested for now
     # TODO: Probably more stuff here?
 
 
@@ -124,9 +126,10 @@ locations = read_locations("sample_locations.csv")
 packages = read_packages("sample_packages.csv", locations, sim_time)
 routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
 
-# Build trucks. There's a third truck, but I think it's an error in the instructions.
+# Build trucks and loader
 trucks = [Truck(1, sim_time, Location.hub, routing_table),
-          Truck(2, sim_time, Location.hub, routing_table)]
+          Truck(2, sim_time, Location.hub, routing_table),
+          Truck(3, sim_time, Location.hub, routing_table)]
 load_builder = LoadBuilder(locations, packages, trucks, routing_table)
 
 print()
@@ -144,10 +147,13 @@ while sim_time.in_business_hours():
         print("Time: ", sim_time.get_now())
     if any(events_triggered_this_minute):
         should_pause_for_input = False
-
+        should_load_more_trucks = False
         # Handle events in SimTime
         for e in events_triggered_this_minute:
             print("EVENT: ", e)
+            if e.event_type == EventTypes.REQ_ADDRESS_CHANGE:  # Must get user input before DELAYED are handled
+                print("TASK HINT: Package 9, new address is '410 S State'")
+                cli_address_change(packages, locations)
             if e.event_type == EventTypes.TRUCK_ARRIVAL:
                 related_truck = [t for t in trucks if t.truck_num == e.related_to_truck_num][0]
                 try:
@@ -163,13 +169,13 @@ while sim_time.in_business_hours():
                 except NoPackagesLeftError:
                     print(f"Truck {related_truck.truck_num} stopping - no packages remaining to deliver.")
             if e.event_type == EventTypes.DELAYED_PACKAGES_ARRIVED:
-                delayed_packages_arrive(packages)
-                load_builder.determine_truckload(trucks[0])  # Load truck 1 with delayed packages
-                trucks[0].drive_to_next()
+                delayed_packages_arrive(packages, sim_time)
+                unassigned_trucks = [t for t in trucks if t.current_location == Location.hub]
+                load_builder.determine_truckload(unassigned_trucks[0])  # Load first available truck with delayed packages
+                unassigned_trucks[0].drive_to_next()
             if e.event_type == EventTypes.REQ_STATUS_CHECK:
                 status_printer.print_packages_data(packages)
-            if e.event_type == EventTypes.REQ_ADDRESS_CHANGE:
-                should_pause_for_input = True
+
 
         # User interface
         if should_pause_for_input:
@@ -186,7 +192,6 @@ while sim_time.in_business_hours():
                 print(user_package.verbose_str())
                 input(continue_string)
             elif user_input == "address change":
-                print("TASK HINT: Package 9, new address is '410 S State'")
                 cli_address_change(packages, locations)
             else:
                 print("Continuing...")

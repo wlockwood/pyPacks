@@ -56,6 +56,9 @@ class Package(object):
             dn_index = self.notes.find(delayed_note) + len(delayed_note) + 1
             delay_time_string = self.notes[dn_index:]
             self.delayed_until = parse_time(delay_time_string)
+        elif self.notes == "Wrong address listed":
+            self.delayed_until = 1020  # From task docs
+            self.update_status(PackageStatus.DELAYED)
         else:
             self.update_status(PackageStatus.READY_FOR_PICKUP)
 
@@ -124,3 +127,6 @@ class PackageLogEntry(object):
     def __init__(self, status: PackageStatus, sim_time: SimTime):
         self.status = status
         self.time = sim_time.get_now()
+
+    def __str__(self):
+        return f"{self.status} @ {self.time}"
