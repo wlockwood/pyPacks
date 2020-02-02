@@ -99,21 +99,7 @@ def cli_address_change(packages: List[Package], locations: List[Location]):
     # Recalculate package groups for this id
     pg = PackageGroup.get_owning_package_group(user_package.package_id)
     new_pgs = pg.rebuild_package_group()
-
-    # Recalculate route
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # TODO: Probably more stuff here?
 
 """
 ######### MAIN #########
@@ -134,7 +120,8 @@ packages = read_packages("sample_packages.csv", locations, sim_time)
 routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
 
 # Build trucks. There's a third truck, but I think it's an error in the instructions.
-trucks = [Truck(1, sim_time, locations[0]), Truck(2, sim_time, locations[0])]
+trucks = [Truck(1, sim_time, Location.hub, routing_table),
+          Truck(2, sim_time, Location.hub, routing_table)]
 load_builder = LoadBuilder(locations, packages, trucks, routing_table)
 
 # Main Interaction Loop

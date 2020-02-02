@@ -4,6 +4,7 @@ import re
 
 
 class Location(object):
+    hub = None  # Set by data_loader
     loc_count = 0
 
     def __init__(self, location_id: int, name: str, address, distances):

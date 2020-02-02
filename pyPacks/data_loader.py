@@ -30,6 +30,7 @@ def read_locations(source_file_name: str):
             output_locations.append(this_row_location)
         print(f'Read in {location_reader.line_num} lines from {source_file_name}, '
               f'created {len(output_locations)} package objects.')
+        Location.hub = output_locations[0]
         return output_locations
 
 

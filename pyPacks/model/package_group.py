@@ -2,7 +2,6 @@ from typing import List, Dict, Set
 from model.location import Location
 from model.package import Package, PackageStatus
 
-
 class PackageGroup(object):
     package_group_dict: Dict[int, 'PackageGroup'] = {}
 
@@ -15,7 +14,7 @@ class PackageGroup(object):
 
     @classmethod
     def get_owning_package_group(cls, package_id: int):
-        return cls.package_group_dict.get(package_id)
+        return PackageGroup.package_group_dict.get(package_id)
 
     def get_count(self):
         return len(self.packages)
@@ -60,19 +59,29 @@ class PackageGroup(object):
         return any([x for x in self.packages if x.package_id == search_id])
 
     def rebuild_package_group(self):
+        from model.truck import Truck  # Must be done here to avoid circular dependency
         # Determine groups
         print(f"Rebuilding {self}...")
         distinct_locations = ()
         for p in self.packages:
             distinct_locations.add(p.dest_location)
-        new_pgs = []
 
+        # Build new PGs
+        new_pgs = []
         print(f"Package group rebuild resulted in:")
         for l in distinct_locations:
             my_packages = [p for p in self.packages if p.dest_location == l]
             new_pg = (PackageGroup(my_packages))
             new_pgs.append(new_pg)
             print(" - ", new_pg)
+
+        # Handle any truck associations
+        if self.get_status() == PackageStatus.LOADED_ON_TRUCK:
+            my_truck = Truck.get_truck_loaded_on(self)
+            my_truck.unload_package_group(self, note="Deleted during PG rebuild")
+            for pg in new_pgs:
+                my_truck.load_package_group(pg, note="Created during PG rebuild")
+            my_truck.determine_route()
         return new_pgs
 
     def __repr__(self):

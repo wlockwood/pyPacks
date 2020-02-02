@@ -4,17 +4,20 @@ Trucks should offer a method to calculate miles driven, packages delivered, and 
 
 """
 from enum import Enum, auto
-from typing import List
+from typing import List, Dict
 
 from model.location import Location
 from model.routing_table import RoutingTable
 from model.sim_time import SimTime
-from model.package import Package,PackageStatus,InvalidOperationFromStatusError
+from model.package import Package, PackageStatus, InvalidOperationFromStatusError
 from model.package_group import PackageGroup
 from route_optimizer import RouteOptimizer
 
 
 class Truck(object):
+    # Associates package groups to trucks for reverse lookup
+    package_group_loading_dict: Dict[PackageGroup, 'Truck'] = {}
+
     def __init__(self, truck_num, sim_time: SimTime, hub: Location, routing_table: RoutingTable):
         self.package_capacity = 16  # Defined in spec
         self.speed_mph = 18  # Defined in spec
@@ -39,12 +42,9 @@ class Truck(object):
         self.package_groups.append(package_group)
         self.log.append(TruckLogEntry.new_load_entry(package_group, self.sim_time))
         package_group.update_status(PackageStatus.LOADED_ON_TRUCK)
-        package_listing: List[Package] = [x.package_id for x in package_group.packages]
-        # print(f"Loaded {package_group.get_count()} packages {package_listing} "
-        #       f"bound for '{package_group.destination.name}' onto truck {self.truck_num}. "
-        #       f"Now at {self.get_package_count()} packages on truck")
+        Truck.package_group_loading_dict[package_group] = self
 
-    def unload_package_group(self, package_group: PackageGroup):
+    def unload_package_group(self, package_group: PackageGroup, note = ""):
         self.package_groups.remove(package_group)
         self.log.append(TruckLogEntry.new_unload_entry(package_group, self.sim_time))
         package_group.update_status(PackageStatus.DELIVERED)
@@ -70,9 +70,9 @@ class Truck(object):
         return self.log[-1]
 
     def determine_route(self):
-        print(f"Truck {self.truck_num}")
         route_optimizer = RouteOptimizer(self.get_locations_on_route())
         self.route = route_optimizer.get_optimized_smart()
+        print(f"Truck {self.truck_num} route loaded: {', '.join([l.shortname for l in self.route])}")
 
     def drive_to(self, location: Location):
         if location not in self.route:
@@ -93,6 +93,9 @@ class Truck(object):
         for pg in here_pg:
             self.unload_package_group(pg)
 
+    @classmethod
+    def get_truck_loaded_on(cls, package_group: PackageGroup):
+        return Truck.package_group_loading_dict.get(package_group)
 
 class TruckLogEntryType(Enum):
     LOADED = "Loaded packages"
@@ -107,24 +110,27 @@ class TruckLogEntry(object):
         self.time: float = sim_time.get_now()
 
     @staticmethod
-    def new_load_entry(package, time):
+    def new_load_entry(package, time, note: str = ""):
         output = TruckLogEntry(time)
         output.entry_type = TruckLogEntryType.LOADED
         output.package = package
+        output.note = note
         return output
 
     @staticmethod
-    def new_unload_entry(package, time):
+    def new_unload_entry(package, time, note: str = ""):
         output = TruckLogEntry(time)
         output.entry_type = TruckLogEntryType.UNLOADED
         output.package = package
+        output.note = note
         return output
 
     @staticmethod
-    def new_drove_entry(start: Location, end: Location, distance: float, time: SimTime):
+    def new_drove_entry(start: Location, end: Location, distance: float, time: SimTime, note: str = ""):
         output = TruckLogEntry(time)
         output.entry_type = TruckLogEntryType.DROVE
         output.start_location = start
         output.end_location = end
         output.distance = distance
+        output.note = note
         return output
