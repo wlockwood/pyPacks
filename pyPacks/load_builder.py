@@ -54,8 +54,11 @@ class LoadBuilder(object):
 
     def choose_starting_group(self) -> PackageGroup:
         """Pick the farthest unconstrained package from the hub, prioritizing earlier deadlines."""
-        # TODO: Add priority for packages with early deliver deadlines
-        return self.get_available_prioritized()[0]
+        output = self.get_available_prioritized()
+        if len(output) == 0:
+            print("No more packages to pick up!")
+            raise NoPackagesLeftError()
+        return output[0]
 
     def get_available_prioritized(self) -> List[PackageGroup]:
         """The order packages should be picked up in current conditions."""
@@ -119,7 +122,7 @@ class LoadBuilder(object):
         # Must start and end at hub
         locations.insert(0, self.locations[0])
         locations.append(self.locations[0])
-        
+
         i = 0
         distances: List[float] = []
         while i < (len(locations) - 1):
@@ -135,3 +138,10 @@ class LoadBuilder(object):
         return truck.get_loaded_ids()
 
     # TODO: Create method for optimizing routes.
+
+
+class NoPackagesLeftError(Exception):
+    """There are no packages to pick up from the hub."""
+
+    def __init__(self):
+        self.message = "There are no packages available for pickup at the hub."

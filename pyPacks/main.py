@@ -9,7 +9,7 @@ from model.package_group import PackageGroup
 from model.routing_table import RoutingTable
 from model.truck import Truck, TruckInvalidOperationError
 from model.sim_time import SimTime, EventAdder, EventTypes
-from load_builder import LoadBuilder
+from load_builder import LoadBuilder, NoPackagesLeftError
 import status_printer
 from route_optimizer import RouteOptimizer
 
@@ -160,6 +160,8 @@ while sim_time.in_business_hours():
                 except TruckInvalidOperationError as te:
                     print("TRUCK ERROR: ", te)
                     should_pause_for_input = True
+                except NoPackagesLeftError:
+                    print(f"Truck {related_truck.truck_num} stopping - no packages remaining to deliver.")
             if e.event_type == EventTypes.DELAYED_PACKAGES_ARRIVED:
                 delayed_packages_arrive(packages)
                 load_builder.determine_truckload(trucks[0])  # Load truck 1 with delayed packages
@@ -197,8 +199,8 @@ driven = []
 for t in trucks:
     my_dist = t.calculate_miles_driven()
     driven.append(my_dist)
-    print(f"Truck {t.truck_num} drove {my_dist} miles.")
-print(f"Total distance driven: {sum(driven)} miles")
+    print(f"Truck {t.truck_num} drove {my_dist:.2f} miles.")
+print(f"Total distance driven: {sum(driven):.2f} miles")
 
 """
 Load truck 2
