@@ -18,7 +18,6 @@ Possible Upgrades:
     option that keeps it nearby or at the hub.
  - Maybe: Try alternate starting points to see if that results in a more optimal result.
  - Maybe: If X->Y is not significantly longer than X->M->Y, trim X->Y?
- - Maybe: Check if any nodes are closer to our nodes than the ones we have selected?
 
  Metrics:
  - Total miles driven
@@ -33,6 +32,7 @@ Note: In most cases, I've chosen implementations by simplicity of explanation ra
 """
 
 class RouteOptimizer(object):
+    # Both bfs_cutoffs were determined experimentally. One thread at 3.9GHz
     bfs_cutoff_fast = 7  # How many locations can BFS do in under a second?
     bfs_cutoff_slow = 8  # How many locations can BFS do in under ten seconds?
 
@@ -53,10 +53,10 @@ class RouteOptimizer(object):
         length = len(self.route_locs)
         if length < self.bfs_cutoff_slow:
             print(f"Smart router chose breadth-first search ({length} locs)")
-            return self.get_optimized_bfs()
+            return self.get_optimized_bfs()  # O(n!)
         else:
-            nn = self.get_optimized_nn()
-            cpm = self.get_optimized_cpm()
+            nn = self.get_optimized_nn()  # O(n^2)
+            cpm = self.get_optimized_cpm()  # O(n^3)
             if self.get_route_distances(cpm) < self.get_route_distances(nn):
                 print(f"Smart router chose antisocial coproximity ({length} locs)")
                 return cpm
@@ -67,6 +67,8 @@ class RouteOptimizer(object):
     def get_optimized_cpm(self):
         """
         Uses the antisocial coproximity metric ("closest to me, farthest from everything else") heuristic.
+        Usually better than nearest-neighbor in terms of total path length.
+        CPU complexity is roughly O(n^3), proved out by experimentation.
         """
         size = len(self.route_locs) + 2
         output = [self.hub] * size
@@ -84,7 +86,7 @@ class RouteOptimizer(object):
 
     def get_optimized_nn(self):
         """
-        Uses nearest neighbor
+        Uses nearest neighbor. O(n^2)
         """
         size = len(self.route_locs) + 2
         output = [self.hub] * size
@@ -99,8 +101,12 @@ class RouteOptimizer(object):
             index += 1
         return output
 
+
     def get_optimized_bfs(self, remaining_locations: List[Location] = None, path_so_far: List[Location] = None,
                           best_complete_path: List[Location] = None, best_dist: List[float] = None):
+        """Brute-force or breadth-first search. Should be O(n!) and experimentation proves that out.
+        Can only handle up to 8 nodes before exceeding ten seconds, but could prune known-bad to improve speed.
+        Threading at the top level is an easy win for DoP-fold speedup."""
         # Initialization
         if path_so_far is None:
             path_so_far = [self.hub]
@@ -170,8 +176,8 @@ class RouteOptimizer(object):
 
     def get_coproximity_metric(self, base_loc: Location, compare_loc: Location):
         """How close is a node to me relative to how far it is from other nodes?"""
-        dist_from_base = self.route_table.lookup(base_loc.loc_id, compare_loc.loc_id)
-        average_from_others = self.get_average_distance_from_others(compare_loc)
+        dist_from_base = self.route_table.lookup(base_loc.loc_id, compare_loc.loc_id)  # O(1), lookup
+        average_from_others = self.get_average_distance_from_others(compare_loc)  # O(n), scan
         output = average_from_others / dist_from_base
         # print(f"{compare_loc.shortname} is {dist_from_base} miles from {base_loc.shortname} and "
         #       f"averages {average_from_others:.1f} from others. CPM = {output:.2f}")
@@ -179,8 +185,8 @@ class RouteOptimizer(object):
 
     def get_list_coproximities(self, base_loc, of_set: List[Location] = []):
         cpms = {}
-        for loc in of_set:
-            cpms[loc] = (self.get_coproximity_metric(base_loc, loc))
+        for loc in of_set:  # O(n^2) now, since it's looping through a loop
+            cpms[loc] = (self.get_coproximity_metric(base_loc, loc))  # O(n)
         return sorted(cpms.items(), key=lambda x: x[1], reverse=True)
 
     def print_route_evaluation(self, description: str, route: List[Location], elapsed: float = 0):
