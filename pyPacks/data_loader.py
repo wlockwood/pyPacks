@@ -60,7 +60,7 @@ def read_packages(source_file_name: str, locations: List[Location], sim_time: Si
             except KeyError:
                 print(f"Couldn't match '{location_hash}' in location dictionary.")
                 fail_count += 1
-            this_row_package = Package(row["Package ID"], sim_time, my_location,
+            this_row_package = Package(row["Package ID"], sim_time, my_location, row["City"],
                                        row["Delivery Deadline"], row["Mass KILO"], row["Notes"])
             output_packages.append(this_row_package)
 

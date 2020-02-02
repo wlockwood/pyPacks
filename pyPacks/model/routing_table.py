@@ -12,7 +12,6 @@ class RoutingTable(object):
     """
 
     # Looking back, this really should have been a two-dimensional array.
-    # TODO: Display routing table, attempt two.
 
     def __init__(self, location_list):
         self.inner_table = dict()  # Empty dictionary

@@ -62,7 +62,7 @@ class PackageGroup(object):
         from model.truck import Truck  # Must be done here to avoid circular dependency
         # Determine groups
         print(f"Rebuilding {self}...")
-        distinct_locations = ()
+        distinct_locations = set()
         for p in self.packages:
             distinct_locations.add(p.dest_location)
 

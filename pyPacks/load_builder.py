@@ -131,6 +131,7 @@ class LoadBuilder(object):
         # print("Distances:", distances)
         # print(f"Total miles: {total:.1f}")
 
+        truck.determine_route()
         return truck.get_loaded_ids()
 
     # TODO: Create method for optimizing routes.

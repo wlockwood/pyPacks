@@ -10,12 +10,16 @@ class EventTypes(Enum):
 
 
 class SimEvent(object):
-    def __init__(self, event_type: EventTypes, time: float):
+    def __init__(self, event_type: EventTypes, time: float, related_to_truck_num: int = None):
         self.event_type = event_type
         self.time = time
+        self.related_to_truck_num = related_to_truck_num  # For truck arrival events
+
+    def __repr__(self):
+        return f"SimEvent: {self.event_type.value} @ {self.time:.1f}"
 
     def __str__(self):
-        return self.event_type.value
+        return f"{self.event_type.value} @ {self.time:.1f}"
 
 
 class SimTime(object):
@@ -26,31 +30,46 @@ class SimTime(object):
         self.current = initial_time
         self.initial_time = initial_time
         self.end_of_day = end_of_day
-        self.events: List[SimEvent] = []
+        self.active_events: List[SimEvent] = []
 
     def get_now(self):
         return self.current
 
     def get_min(self):
-        self.current // 100
+        return self.current // 100
 
     def increment(self):
         self.current += 1
         if (self.current % 100) == 60:
             self.current += 40
         # Triggered events
-        return [e for e in self.events if self.current == e.time]
+        triggered = [e for e in self.active_events if self.current >= e.time]
+        for e in triggered:
+            self.active_events.remove(e)
+        return triggered
 
-    def add_event(self, event_type: EventTypes, time: float):
-        self.events.append(SimEvent(event_type, time))
+    def add_event(self, event_type: EventTypes, time: float, related_to_truck_num=None):
+        # Convert event time in case other code isn't aware of convention
+        whole_hours = time // 100
+        minutes = time - whole_hours * 100
+        extra_hours = minutes // 60
+        new_minutes = minutes % 60
+        converted_time = (whole_hours + extra_hours) * 100 + new_minutes
+        self.active_events.append(SimEvent(event_type, converted_time, related_to_truck_num))
 
     def in_business_hours(self):
         return self.initial_time <= self.current < self.end_of_day
 
+    def __repr__(self):
+        return f"SimTime: {self.current:1f}"
+
+    def __str__(self):
+        return f"ST: {self.current:1f}"
+
 
 class EventAdder(object):
     @staticmethod
-    def add_events(sim_time: SimTime):
+    def add_required_events(sim_time: SimTime):
         sim_time.add_event(EventTypes.REQ_STATUS_CHECK, 900)
         sim_time.add_event(EventTypes.REQ_STATUS_CHECK, 1000)
         sim_time.add_event(EventTypes.REQ_STATUS_CHECK, 1300)

@@ -31,6 +31,7 @@ Note: In most cases, I've chosen implementations by simplicity of explanation ra
       making a priority queue of locations by distance from each other location. 
 """
 
+
 class RouteOptimizer(object):
     # Both bfs_cutoffs were determined experimentally. One thread at 3.9GHz
     bfs_cutoff_fast = 7  # How many locations can BFS do in under a second?
@@ -56,12 +57,19 @@ class RouteOptimizer(object):
             return self.get_optimized_bfs()  # O(n!)
         else:
             nn = self.get_optimized_nn()  # O(n^2)
+            nn_dist = sum(self.get_route_distances(nn))
             cpm = self.get_optimized_cpm()  # O(n^3)
-            if self.get_route_distances(cpm) < self.get_route_distances(nn):
-                print(f"Smart router chose antisocial coproximity ({length} locs)")
+            cpm_dist = sum(self.get_route_distances(cpm))
+            if cpm_dist == nn_dist:
+                print(f"Smart router chose ASCP/NN as both were identical at {cpm_dist:.2f} miles.")
+                return cpm
+            elif cpm_dist < nn_dist:
+                print(f"Smart router chose antisocial coproximity, "
+                      f"{length} locs. ASCP:{cpm_dist:.2f} NN: {nn_dist:.2f}")
                 return cpm
             else:
-                print(f"Smart router chose nearest neighbor ({length} locs)")
+                print(f"Smart router chose nearest neighbor, "
+                      f"{length} locs. ASCP:{cpm_dist:.2f} NN: {nn_dist:.2f}")
                 return nn
 
     def get_optimized_cpm(self):
@@ -78,7 +86,7 @@ class RouteOptimizer(object):
         while True:
             if len(remaining_locations) == 0:
                 break
-            my_cpms = self.get_list_coproximities(output[index-1], remaining_locations)
+            my_cpms = self.get_list_coproximities(output[index - 1], remaining_locations)
             output[index] = my_cpms[0][0]  # Takes largest CPM's location
             remaining_locations.remove(output[index])
             index += 1
@@ -96,11 +104,10 @@ class RouteOptimizer(object):
         while True:
             if len(remaining_locations) == 0:
                 break
-            output[index] = self.get_nearest_to(output[index-1], remaining_locations)
+            output[index] = self.get_nearest_to(output[index - 1], remaining_locations)
             remaining_locations.remove(output[index])
             index += 1
         return output
-
 
     def get_optimized_bfs(self, remaining_locations: List[Location] = None, path_so_far: List[Location] = None,
                           best_complete_path: List[Location] = None, best_dist: List[float] = None):
@@ -160,7 +167,7 @@ class RouteOptimizer(object):
             total += self.route_table.lookup(loc.loc_id, base_loc.loc_id)
         return total / len(self.route_locs)
 
-    def get_nearest_to(self, base_loc: Location, of_set = []):
+    def get_nearest_to(self, base_loc: Location, of_set=[]):
         my_set = of_set or self.route_locs
 
         closest_so_far: Location = None
@@ -201,7 +208,7 @@ class RouteOptimizer(object):
         distances = self.get_route_distances(route)
         total = sum(distances)
         print(f"Opt type: {description:^25}\tTotal: {total:.2f}\tTime to drive: {(total / 18):.1f}h"
-              f"\tCalc time: {elapsed*1000:5.3f}ms")
+              f"\tCalc time: {elapsed * 1000:5.3f}ms")
 
     def get_route_distances(self, route: List[Location]) -> List[float]:
         i = 0
@@ -212,7 +219,6 @@ class RouteOptimizer(object):
                 distances.append(next)
             i += 1
         return distances
-
 
     def run_time_test(self, description: str, method: Callable, test_count: int = 10000):
         times = []
@@ -235,5 +241,3 @@ class RouteOptimizer(object):
         self.run_time_test("Coproximity", self.get_optimized_cpm, test_count)
         if len(self.route_locs) <= RouteOptimizer.bfs_cutoff_fast:
             self.run_time_test("BFS / Brute x5", self.get_optimized_bfs(), 5)
-
-

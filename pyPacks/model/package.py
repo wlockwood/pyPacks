@@ -8,17 +8,18 @@ from model.location import Location
 # TODO: Add in "priority" concept for packages with delivery deadlines.
 class Package(object):
 
-    def __init__(self, package_id: int, sim_time: SimTime, dest_location: Location,
+    def __init__(self, package_id: int, sim_time: SimTime, dest_location: Location, city: str,
                  delivery_deadline: int = 0, mass_kg: float = 0, notes: str = ""):
 
         self.log = []
-        self.status = 0
+        self.status = PackageStatus.INITIALIZED
         self.my_sim_time_tracker = sim_time
         self.update_status(PackageStatus.INITIALIZED)
 
         # Params
         self.package_id: int = int(package_id)
         self.dest_location: Location = dest_location
+        self.city = city
         self.notes: str = notes
         self.mass_kg = mass_kg
 
@@ -72,11 +73,22 @@ class Package(object):
         self.status = new_status
         self.log.append(PackageLogEntry(new_status, self.my_sim_time_tracker))
 
+    def verbose_str(self):
+        dest = self.dest_location
+        address_string = ", ".join([dest.address, self.city, dest.zip])
+
+        status_header_len = max(len("Status"), PackageStatus.get_longest_len())
+        status_string = "Status: {:{sw}}".format(self.status.value, sw=status_header_len)
+
+        deadline_string = "EOD" if self.delivery_deadline == 0 else f"{self.delivery_deadline:.0f}"
+        return f"ID: {self.package_id:2}\t{status_string}\t" \
+               f"{address_string}\tDeadline:{deadline_string:4}\tKG: {self.mass_kg}\t Notes: {self.notes}"
+
     def __repr__(self):
-        return f"Package({self.package_id},{self.dest_location.name},{self.delivery_deadline},{self.notes})"
+        return f"Package(ID {self.package_id},{self.dest_location.name})"
 
     def __str__(self):
-        return f"({self.package_id},{self.dest_location.name},{self.delivery_deadline},{self.notes})"
+        return f"Package(ID {self.package_id},{self.dest_location.name},{self.delivery_deadline},{self.notes})"
 
 
 class InvalidOperationFromStatusError(Exception):

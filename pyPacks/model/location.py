@@ -6,23 +6,35 @@ import re
 class Location(object):
     hub = None  # Set by data_loader
     loc_count = 0
+    short_name_part_length = 5
+    short_name_part_count = 5
+    short_name_length = short_name_part_count * short_name_part_length
 
     def __init__(self, location_id: int, name: str, address, distances):
+        # Params
         self.loc_id: int = location_id
         self.name = name
-        self.shortname = name\
-            .replace("Salt Lake", "SL")\
-            .replace("Western Governors University", "WGU")\
-            .replace("City", "C")[:15]
-        # Parse address into street and zip. Hub has no address.
+        self.distances = distances
 
+        # Synthetic elements below
+
+        # Construct short name
+        abbrev_name = name\
+            .replace("Salt Lake", "SL")\
+            .replace("Western Governors University", "WGU")
+        name_parts = [part.strip() for part in re.split(r' ', abbrev_name) if part.strip()]
+        # Capitalize the first letter of each part, trim each part to 3 characters
+        name_parts_first_3 = [x[0].upper() + x[1:Location.short_name_part_length] for x in name_parts]
+        self.shortname = ''.join(name_parts_first_3[:Location.short_name_part_count])
+
+        # Parse address into street and zip. Hub has no address.
         address_parts = [part.strip() for part in re.split(r'[\(\)]', address) if part.strip()]
         self.address = address_parts[0]
         if len(address_parts) > 1:
-            self.zip = address_parts[1]
+            self.zip = address_parts[1].strip()
         else:
             self.zip = ""
-        self.distances = distances
+
 
         Location.loc_count += 1
 
