@@ -50,16 +50,19 @@ class RouteOptimizer(object):
     def get_optimized_smart(self):
         """Select algorithm from options and attempt to return best viable.
         Run BFS if viable, or best of NN and CPM."""
-        if len(self.route_locs) < self.bfs_cutoff_slow:
+        length = len(self.route_locs)
+        if length < self.bfs_cutoff_slow:
+            print(f"Smart router chose breadth-first search ({length} locs)")
             return self.get_optimized_bfs()
         else:
             nn = self.get_optimized_nn()
             cpm = self.get_optimized_cpm()
             if self.get_route_distances(cpm) < self.get_route_distances(nn):
+                print(f"Smart router chose antisocial coproximity ({length} locs)")
                 return cpm
             else:
+                print(f"Smart router chose nearest neighbor ({length} locs)")
                 return nn
-
 
     def get_optimized_cpm(self):
         """
