@@ -7,20 +7,24 @@ from enum import Enum, auto
 from typing import List
 
 from model.location import Location
+from model.routing_table import RoutingTable
 from model.sim_time import SimTime
 from model.package import Package,PackageStatus,InvalidOperationFromStatusError
 from model.package_group import PackageGroup
+from route_optimizer import RouteOptimizer
 
 
 class Truck(object):
-    def __init__(self, truck_num, sim_time: SimTime):
+    def __init__(self, truck_num, sim_time: SimTime, hub: Location, routing_table: RoutingTable):
         self.package_capacity = 16  # Defined in spec
         self.speed_mph = 18  # Defined in spec
         self.package_groups: List[PackageGroup] = []  # Packages currently on truck
-        self.log = []  # Events involving this truck
+        self.log = [TruckLogEntry(sim_time)]  # Events involving this truck
         self.truck_num = truck_num
-        self.current_location = 1  # All trucks start at hub / WGU
+        self.current_location = hub  # All trucks start at hub / WGU
         self.sim_time = sim_time
+        self.routing_table = routing_table
+        self.route: List[Location] = []  # Unused until fully loaded
 
     def load_package_group(self, package_group: PackageGroup):
         # Don't load package group if it won't fit on the truck
@@ -62,16 +66,45 @@ class Truck(object):
             output.extend(pg.get_ids())
         return output
 
+    def get_last_log_entry(self):
+        return self.log[-1]
+
+    def determine_route(self):
+        print(f"Truck {self.truck_num}")
+        route_optimizer = RouteOptimizer(self.get_locations_on_route())
+        self.route = route_optimizer.get_optimized_smart()
+
+    def drive_to(self, location: Location):
+        if location not in self.route:
+            raise ValueError(f"Location '{location.name}' not on truck {self.truck_num}'s route.")
+        if location == self.current_location:
+            raise ValueError(f"Truck {self.truck_num}'s is already at the "
+                             f"location {location.name} and cannot drive there.")
+
+        distance = self.routing_table.lookup(self.current_location.loc_id, location.loc_id)
+        self.log.append(TruckLogEntry.new_drove_entry(self.current_location, location, distance, self.sim_time))
+        self.current_location = location
+
+    def unload_packages_for_here(self):
+        here_pg = [pg for pg in self.package_groups if pg.destination == self.current_location]
+        if len(here_pg) == 0:
+            raise ValueError(f"No package groups currently loaded on truck {self.truck_num} are "
+                             f"destined for '{self.current_location.name}'")
+        for pg in here_pg:
+            self.unload_package_group(pg)
+
+
 class TruckLogEntryType(Enum):
-    LOADED = auto()
-    UNLOADED = auto()
-    DROVE = auto()
+    LOADED = "Loaded packages"
+    UNLOADED = "Unloaded package(s)"
+    DROVE = "Drove to location"
+    CREATED = "Truck object created"
 
 
 class TruckLogEntry(object):
 
-    def __init__(self, time: SimTime):
-        self.time: SimTime = time
+    def __init__(self, sim_time: SimTime):
+        self.time: float = sim_time.get_now()
 
     @staticmethod
     def new_load_entry(package, time):
@@ -88,7 +121,7 @@ class TruckLogEntry(object):
         return output
 
     @staticmethod
-    def new_drove_entry(start, end, distance, time):
+    def new_drove_entry(start: Location, end: Location, distance: float, time: SimTime):
         output = TruckLogEntry(time)
         output.entry_type = TruckLogEntryType.DROVE
         output.start_location = start
