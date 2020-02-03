@@ -30,7 +30,7 @@ class LoadBuilder(object):
     def group_packages(packages):
         """Group undelivered packages by location and availability."""
         # Group package by location and status
-        keyfunc = lambda x: str(x.dest_location.loc_id) + "-" + x.status.value
+        keyfunc = lambda x: str(x.dest_location.loc_id) + "-" + x.status.value + "-" + str(x.delivery_deadline)
         sorted_packs = sorted(packages, key=keyfunc)
         grouped_packs = groupby(sorted_packs, keyfunc)
 
@@ -65,7 +65,7 @@ class LoadBuilder(object):
         available_packages = [x for x in self.package_groups if x.get_status() == PackageStatus.READY_FOR_PICKUP]
         # Packages due soonest, preferring farther from hub
         sorted_pgs = sorted(available_packages, key=lambda x:
-        x.get_remaining_time() - self.routing_table.lookup(1, x.destination.loc_id) / 100)
+            x.get_remaining_time() - self.routing_table.lookup(1, x.destination.loc_id) / 100)
         return sorted_pgs
 
     def determine_truckload(self, truck: Truck):
@@ -117,7 +117,7 @@ class LoadBuilder(object):
         # ----------------------------------------------
 
         # Determine rough stats using load-order routing.
-        locations = [x.destination for x in truck.package_groups]
+        locations = list(set(x.destination for x in truck.package_groups))
 
         # Must start and end at hub
         locations.insert(0, self.locations[0])

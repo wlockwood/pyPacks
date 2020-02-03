@@ -7,6 +7,7 @@ class EventTypes(Enum):
     REQ_STATUS_CHECK = "Mandatory check time hit"
     REQ_ADDRESS_CHANGE = "Mandatory address change time hit"
     DELAYED_PACKAGES_ARRIVED = "Delayed packages have arrived"
+    DEPART_ASAP = "Depart when ready"
 
 
 class SimEvent(object):
@@ -39,7 +40,7 @@ class SimTime(object):
         return self.current // 100
 
     def increment(self):
-        self.current += 1
+        self.current += .1
         if (self.current % 100) == 60:
             self.current += 40
         # Triggered events
@@ -75,6 +76,7 @@ class EventAdder(object):
         sim_time.add_event(EventTypes.REQ_STATUS_CHECK, 1300)
         sim_time.add_event(EventTypes.DELAYED_PACKAGES_ARRIVED, 905)
         sim_time.add_event(EventTypes.DELAYED_PACKAGES_ARRIVED, 1020)
+        sim_time.add_event(EventTypes.REQ_STATUS_CHECK, 1030)
         sim_time.add_event(EventTypes.REQ_ADDRESS_CHANGE, 1020)
 
 
