@@ -53,7 +53,7 @@ class RouteOptimizer(object):
         Run BFS if viable, or best of NN and CPM."""
         length = len(self.route_locs)
         if length < self.bfs_cutoff_slow:
-            print(f"Smart router chose breadth-first search ({length} locs)")
+            print(f"Smart router brute-force search ({length} locs)")
             return self.get_optimized_bfs()  # O(n!)
         else:
             nn = self.get_optimized_nn()  # O(n^2)
@@ -111,7 +111,7 @@ class RouteOptimizer(object):
 
     def get_optimized_bfs(self, remaining_locations: List[Location] = None, path_so_far: List[Location] = None,
                           best_complete_path: List[Location] = None, best_dist: List[float] = None):
-        """Brute-force or breadth-first search. Should be O(n!) and experimentation proves that out.
+        """Brute-force or depth-first search. Should be O(n!) and experimentation proves that out.
         Can only handle up to 8 nodes before exceeding ten seconds, but could prune known-bad to improve speed.
         Threading at the top level is an easy win for DoP-fold speedup."""
         # Initialization

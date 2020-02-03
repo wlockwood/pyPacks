@@ -69,7 +69,7 @@ def cli_truck_load(trucks: List[Truck]):
 def cli_address_change(packages: List[Package], locations: List[Location]):
     # Get package to change
     while True:
-        user_string = input(f"Input package Id of the package you'd like to update:")
+        user_string = input(f"Input package Id of the package you'd like to update: ")
         try:
             user_int = int(user_string)
             user_package = ([p for p in packages if p.package_id == user_int])[0]
@@ -85,7 +85,7 @@ def cli_address_change(packages: List[Package], locations: List[Location]):
 
     # Ask for new address
     while True:
-        user_string = input(f"Input new address for package Id {user_package.package_id}:")
+        user_string = input(f"Input new address for package Id {user_package.package_id}: ")
 
         # Attempt to match to a location id, err if not
         user_locations = ([l for l in locations if
@@ -132,38 +132,55 @@ trucks = [Truck(1, sim_time, Location.hub, routing_table),
 load_builder = LoadBuilder(locations, packages, trucks, routing_table)
 
 print()
-print("--- Initialization complete - Sim loop begins ---")
+print("--- Initialization complete - Simulation loop begins ---")
 print()
 
-# Load two trucks immediately
-load_builder.determine_truckload(trucks[1])
-trucks[1].drive_to_next()
+# Load a truck immediately
+load_builder.determine_truckload(trucks[0], limited_load=11)
+trucks[0].drive_to_next()
 
 # Main Interaction and Sim Loop
 continue_string = "Press enter to continue"  # I hate this, but "any key" is apparently platform dependent
 while sim_time.in_business_hours():
     events_triggered_this_time_increment = sim_time.increment()
-    if sim_time.get_now() % 100 == 0 or any(events_triggered_this_time_increment):
+    delayed_package_count = sum([1 for p in packages if p.status == PackageStatus.DELAYED])
+    ready_package_count = sum([1 for p in packages if p.status == PackageStatus.READY_FOR_PICKUP])
+    should_pause_for_input = False
+    should_load_more_trucks = delayed_package_count == 0
+
+    if sim_time.get_now() % 100 == 0:
         print(f"Time: {sim_time.get_now():.1f}")
     if any(events_triggered_this_time_increment):
-        should_pause_for_input = False
-        should_load_more_trucks = False
         # Handle events in SimTime
         for e in events_triggered_this_time_increment:
-            print("EVENT: ", e)
+            # Print extra data for truck arrival events
+            if e.event_type == EventTypes.TRUCK_ARRIVAL:
+                related_truck = [t for t in trucks if t.truck_num == e.related_to_truck_num][0]
+                pgs_ids_for_here = [pg.get_ids_string() for pg in related_truck.package_groups
+                                if pg.destination == related_truck.current_location]
+
+                pids_for_here = [p for sublist in pgs_ids_for_here for p in sublist]  # Flattens
+                print(f"EVENT: @ {e.time:.1f} - Truck {related_truck.truck_num} arrived at '{related_truck.current_location.name}' "
+                      f"to deliver package(s): {', '.join(pids_for_here)}")
+            else:
+                print(f"EVENT: @ {e.time} - {e.event_type.value}")
+
             if e.event_type == EventTypes.REQ_ADDRESS_CHANGE:  # Must get user input before DELAYED are handled
                 print("TASK HINT: Package 9, new address is '410 S State'")
                 cli_address_change(packages, locations)
 
             if e.event_type == EventTypes.TRUCK_ARRIVAL:
-                related_truck = [t for t in trucks if t.truck_num == e.related_to_truck_num][0]
                 try:
                     if related_truck.current_location == Location.hub and should_load_more_trucks:
                         print(f"Truck {related_truck.truck_num} finished its route and is continuing.")
                         load_builder.determine_truckload(related_truck)
+                        related_truck.drive_to_next()
+                    elif related_truck.current_location == Location.hub and not should_load_more_trucks:
+                        print(f"Truck {related_truck.truck_num} finished its route and is stopping.")
                     else:
                         related_truck.unload_packages_for_here()
-                    related_truck.drive_to_next()
+                        related_truck.drive_to_next()
+
                 except TruckInvalidOperationError as te:
                     print("TRUCK ERROR: ", te)
                     should_pause_for_input = True
@@ -172,16 +189,17 @@ while sim_time.in_business_hours():
 
             if e.event_type == EventTypes.DELAYED_PACKAGES_ARRIVED:
                 delayed_packages_arrive(packages, sim_time)
-                unassigned_trucks = [t for t in trucks if t.current_location == Location.hub]
-                if len(unassigned_trucks) == 0:
-                    should_load_more_trucks = True
-                else:
-                    load_builder.determine_truckload(unassigned_trucks[0])  # Load first available truck with delayed packages
-                    unassigned_trucks[0].drive_to_next()
+                should_load_more_trucks = True
 
             if e.event_type == EventTypes.REQ_STATUS_CHECK:
                 status_printer.print_packages_data(packages, lambda x: x.delivery_deadline)
+                print()
 
+            available_trucks = [t for t in trucks if t.current_location == Location.hub]
+            if should_load_more_trucks and any(available_trucks) and ready_package_count > 0:
+                # Load first available truck with delayed packages and start route
+                load_builder.determine_truckload(available_trucks[0])
+                available_trucks[0].drive_to_next()
 
         # User interface
         if should_pause_for_input:

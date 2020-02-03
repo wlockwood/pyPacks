@@ -16,11 +16,17 @@ class PackageGroup(object):
     def get_owning_package_group(cls, package_id: int):
         return PackageGroup.package_group_dict.get(package_id)
 
+    def get_delivery_deadline(self):
+        return min([p.delivery_deadline for p in self.packages])
+
     def get_count(self):
         return len(self.packages)
 
     def get_ids(self) -> List[int]:
         return [x.package_id for x in self.packages]
+
+    def get_ids_string(self) -> List[str]:
+        return [str(x.package_id) for x in self.packages]
 
     def get_status(self):
         return self.packages[0].status  # All packages in group should have same status

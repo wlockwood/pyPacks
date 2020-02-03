@@ -24,7 +24,7 @@ class Package(object):
         self.mass_kg = mass_kg
 
         # Constraints
-        self.delivery_deadline: float = parse_time(delivery_deadline)  # 0 indicates EOD
+        self.delivery_deadline: float = parse_time(delivery_deadline)  # 1700 indicates EOD
         self.delayed_until: float = 0  # 0 indicates no delay
         self.valid_truck_ids: List[int] = []  # By default, all trucks are valid
         self.linked_package_ids = []
@@ -77,15 +77,31 @@ class Package(object):
         self.log.append(PackageLogEntry(new_status, self.my_sim_time_tracker))
 
     def verbose_str(self):
+        from model.package_group import PackageGroup
+        from model.truck import Truck
+
         dest = self.dest_location
         address_string = ", ".join([dest.address, self.city, dest.zip])
 
         status_header_len = max(len("Status"), PackageStatus.get_longest_len())
-        status_string = "Status: {:{sw}}".format(self.status.value, sw=status_header_len)
+        enhanced_status = self.status.value
+        if self.status == PackageStatus.DELAYED:
+            enhanced_status = f"Delayed: {self.delayed_until:.0f}"
+        elif self.status == PackageStatus.DELIVERED:
+            dlv_time = self.log[-1].time
+            if dlv_time > self.delivery_deadline:
+                enhanced_status = f"LATE DELIV @ {dlv_time:.1f}"
+            else:
+                enhanced_status = f"Delivered @ {dlv_time:.1f}"
+        elif self.status == PackageStatus.LOADED_ON_TRUCK:
+            my_pg = PackageGroup.get_owning_package_group(self.package_id)
+            my_truck = Truck.get_truck_loaded_on(my_pg)
+            enhanced_status = f"Loaded on truck {my_truck.truck_num}"
+        status_string = "{:{sw}}".format(enhanced_status, sw=status_header_len)
 
         deadline_string = "EOD" if self.delivery_deadline == 0 else f"{self.delivery_deadline:.0f}"
         return f"ID: {self.package_id:2}\t{status_string}\t" \
-               f"{address_string}\tDeadline:{deadline_string:4}\tKG: {self.mass_kg}\t Notes: {self.notes}"
+               f"{address_string:<45}\tDeadline:{deadline_string:4}\tKG: {self.mass_kg}\t Notes: {self.notes}"
 
     def __repr__(self):
         return f"Package(ID {self.package_id},{self.dest_location.name})"
