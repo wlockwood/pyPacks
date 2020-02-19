@@ -1,5 +1,5 @@
 # C950
-This repository is the final project for WGU's C950 course. It's intended to be a simplified package routing system for a theoretical shipping company.
+This repository is a school project. It's intended to be a simplified package routing system for a theoretical shipping company.
 
 This is in development, so please see the commit history for current status.
 
