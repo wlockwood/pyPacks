@@ -34,8 +34,8 @@ Note: In most cases, I've chosen implementations by simplicity of explanation ra
 
 class RouteOptimizer(object):
     # Both bfs_cutoffs were determined experimentally. One thread at 3.9GHz
-    bfs_cutoff_fast = 7  # How many locations can BFS do in under a second?
-    bfs_cutoff_slow = 8  # How many locations can BFS do in under ten seconds?
+    bfs_cutoff_fast = 9  # How many locations can BFS do in under a second?
+    bfs_cutoff_slow = 11  # How many locations can BFS do in under a minute?
 
     def __init__(self, route_locs: List[Location], route_table: IRoutingTable, hub: Location):
         self.route_locs = []
@@ -125,9 +125,6 @@ class RouteOptimizer(object):
         # Base case
         if len(remaining_locations) == 0:
             path_so_far.append(self.hub)
-            distances = self.get_route_distances(path_so_far)
-            total = sum(distances)
-            # print(f"Completed path of {total:.2f} miles: ", ', '.join(str(x.loc_id) for x in path_so_far))
             return path_so_far
 
         child_paths = []
@@ -135,14 +132,17 @@ class RouteOptimizer(object):
             my_children = [x for x in remaining_locations if x != loc]
             psf = path_so_far.copy()
             psf.append(loc)
-            # print("PSF: ", ', '.join(str(x.loc_id) for x in psf))
-            my_path = self.get_optimized_bfs(my_children, psf)
+
+            # Pruning. Not working yet
+            # if self.get_route_len(path_so_far) > best_dist[0]:
+
+            my_path = self.get_optimized_bfs(my_children, psf, best_dist=best_dist)
             child_paths.append(my_path)
 
         best_child_dist = float("inf")
         best_child_path = []
         for path in child_paths:
-            total = sum(self.get_route_distances(path))
+            total = self.get_route_len(path)
             if total < best_child_dist:
                 best_child_path = path
                 best_child_dist = total
@@ -219,6 +219,14 @@ class RouteOptimizer(object):
                 distances.append(next)
             i += 1
         return distances
+
+    def get_route_len(self, route: List[Location]) -> float:
+        total = 0
+        for i in range(len(route) - 1):
+            next = self.route_table.lookup(route[i].loc_id, route[i + 1].loc_id)
+            if next is not None:
+                total += next
+        return total
 
     def run_time_test(self, description: str, method: Callable, test_count: int = 10000):
         times = []

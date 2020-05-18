@@ -31,6 +31,7 @@ class RoutingTableHash(IRoutingTable):
     def set_route_distance(self, id1: int, id2: int, distance) -> None:
         """Add or update the distance between two places."""
         self.inner_table[self.make_key(id1, id2)] = distance
+        self.inner_table[self.make_key(id2, id1)] = distance
 
     def remove_route(self, id1: int, id2: int):
         """Removes a route and its reverse."""

@@ -7,7 +7,8 @@ from model.location import Location
 from model.package import Package, PackageStatus
 from model.package_group import PackageGroup
 from model.i_routing_table import IRoutingTable
-from model.routing_table import RoutingTableHash
+from model.routing_table_hash import RoutingTableHash
+from model.routing_table_array import RoutingTableArray
 from model.truck import Truck, TruckInvalidOperationError
 from model.sim_time import SimTime, EventAdder, EventTypes
 from load_builder import LoadBuilder, NoPackagesLeftError
@@ -29,28 +30,45 @@ def delayed_packages_arrive(packages: List[Package], sim_time: SimTime):
     for p in [x for x in packages if x.status == PackageStatus.DELAYED and x.delayed_until <= sim_time.get_now()]:
         p.update_status(PackageStatus.READY_FOR_PICKUP)
 
-
-def profile_optimization_strategies():
+import cProfile
+def profile_optimization_strategies(routing_method: str, loc_count: int, step_size: int = 1):
     # Initial data load
     locations = read_locations("sample_locations.csv")
-    locations.extend(Location.generate_fake_locations(500))
-    test_routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
+    if len(locations) < loc_count:
+        need = loc_count - len(locations)
+        locations.extend(Location.generate_fake_locations(need))
+    test_routing_table = None
+    if routing_method.lower() == "hash":
+        test_routing_table = RoutingTableHash(locations)  # Build location+location distance lookup hash table
+    elif routing_method.lower() == "array":
+        test_routing_table = RoutingTableArray(locations)
+    else:
+        raise Exception("Unknown routing table type specified:", routing_method)
 
     # Testing lots of locations
 
-    for count in range(25, len(locations), 25):
+    for count in range(5, loc_count, step_size):
         print(f"-- Optimization strategies with {count} locations --")
         this_pass_locations = locations[1:count]
         optimizer = RouteOptimizer(this_pass_locations, test_routing_table, locations[0])
+
+        if count <= optimizer.bfs_cutoff_slow:
+            start = time.perf_counter()
+            route = optimizer.get_optimized_bfs()
+            elapsed = time.perf_counter() - start
+            optimizer.print_route_evaluation(f"Brute force N={len(this_pass_locations) + 1}", route, elapsed)
+        else:
+            print("Skipping brute force search due to location count being above", optimizer.bfs_cutoff_slow)
+
         start = time.perf_counter()
         route = optimizer.get_optimized_nn()
         elapsed = time.perf_counter() - start
-        optimizer.print_route_evaluation(f"Nearest Neighbor N={len(this_pass_locations)}", route, elapsed)
+        optimizer.print_route_evaluation(f"Nearest Neighbor N={len(this_pass_locations) + 1}", route, elapsed)
 
         start = time.perf_counter()
         route = optimizer.get_optimized_cpm()
         elapsed = time.perf_counter() - start
-        optimizer.print_route_evaluation(f"AS Coproximity N={len(this_pass_locations)}", route, elapsed)
+        optimizer.print_route_evaluation(f"AS Coproximity N={len(this_pass_locations) + 1}", route, elapsed)
     exit(0)
 
 
@@ -114,9 +132,9 @@ def cli_address_change(packages: List[Package], locations: List[Location]):
 Basic strategy: wait for all packages to come in, start delivering everything with a deadline.
 """
 # Profiling-only mode
-if False:
+if True:
     # profile_bfs_by_locs()
-    profile_optimization_strategies()
+    profile_optimization_strategies("array", RouteOptimizer.bfs_cutoff_slow)
     exit(0)
 
 sim_time = SimTime(800, 1700)  # Global time tracker

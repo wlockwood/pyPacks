@@ -1,5 +1,5 @@
 from unittest import TestCase
-from model.routing_table import RoutingTable
+from model.routing_table_hash import RoutingTable
 
 
 class TestRoutingTable(TestCase):
