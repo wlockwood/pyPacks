@@ -10,14 +10,14 @@ from itertools import groupby
 from typing import List, Set
 from model.package_group import PackageGroup
 from model.package import Package, PackageStatus
-from model.routing_table import RoutingTable
+from model.i_routing_table import IRoutingTable
 from model.truck import Truck
 from model.location import Location
 
 
 class LoadBuilder(object):
 
-    def __init__(self, locations, packages, trucks, routing_table: RoutingTable):
+    def __init__(self, locations, packages, trucks, routing_table: IRoutingTable):
         self.locations = locations
         self.packages = packages
         self.package_groups = self.group_packages(packages)

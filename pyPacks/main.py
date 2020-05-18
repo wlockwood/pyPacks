@@ -6,7 +6,8 @@ from data_loader import read_packages, read_locations
 from model.location import Location
 from model.package import Package, PackageStatus
 from model.package_group import PackageGroup
-from model.routing_table import RoutingTable
+from model.i_routing_table import IRoutingTable
+from model.routing_table import RoutingTableHash
 from model.truck import Truck, TruckInvalidOperationError
 from model.sim_time import SimTime, EventAdder, EventTypes
 from load_builder import LoadBuilder, NoPackagesLeftError
@@ -124,7 +125,7 @@ EventAdder.add_required_events(sim_time)
 # Initial data load
 locations = read_locations("sample_locations.csv")
 packages = read_packages("sample_packages.csv", locations, sim_time)
-routing_table = RoutingTable(locations)  # Build location+location distance lookup hash table
+routing_table = RoutingTableHash(locations)  # Build location+location distance lookup hash table
 
 # Build trucks and loader
 trucks = [Truck(1, sim_time, Location.hub, routing_table),

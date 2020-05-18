@@ -7,7 +7,7 @@ from enum import Enum, auto
 from typing import List, Dict
 
 from model.location import Location
-from model.routing_table import RoutingTable
+from model.i_routing_table import IRoutingTable
 from model.sim_time import SimTime, SimEvent, EventTypes
 from model.package import Package, PackageStatus, InvalidOperationFromStatusError
 from model.package_group import PackageGroup
@@ -18,7 +18,7 @@ class Truck(object):
     # Associates package groups to trucks for reverse lookup
     package_group_loading_dict: Dict[PackageGroup, 'Truck'] = {}
 
-    def __init__(self, truck_num, sim_time: SimTime, hub: Location, routing_table: RoutingTable):
+    def __init__(self, truck_num, sim_time: SimTime, hub: Location, routing_table: IRoutingTable):
         self.package_capacity = 16  # Defined in spec
         self.speed_mph = 18  # Defined in spec
         self.package_groups: List[PackageGroup] = []  # Packages currently on truck

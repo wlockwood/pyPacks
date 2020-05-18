@@ -1,7 +1,7 @@
 from typing import List, Set, Callable
 import time
 from model.location import Location
-from model.routing_table import RoutingTable
+from model.i_routing_table import IRoutingTable
 
 """
  Constraints and requirements
@@ -37,7 +37,7 @@ class RouteOptimizer(object):
     bfs_cutoff_fast = 7  # How many locations can BFS do in under a second?
     bfs_cutoff_slow = 8  # How many locations can BFS do in under ten seconds?
 
-    def __init__(self, route_locs: List[Location], route_table: RoutingTable, hub: Location):
+    def __init__(self, route_locs: List[Location], route_table: IRoutingTable, hub: Location):
         self.route_locs = []
 
         # Deduplicate locations
