@@ -1,5 +1,3 @@
-# William Lockwood 000641977
-
 from typing import List
 import time
 from data_loader import read_packages, read_locations
