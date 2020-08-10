@@ -1,5 +1,5 @@
-# C950
-This repository is a school project. It's intended to be a simplified package routing system for a theoretical shipping company.
+# pyPacks
+This repository contains an application that was a school project. It's intended to be a simplified package routing system for a theoretical shipping company.
 
 This is in development, so please see the commit history for current status.
 
